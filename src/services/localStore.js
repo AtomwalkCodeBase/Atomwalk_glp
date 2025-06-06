@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const persistData = async (token) => {
-    // console.log('persistData', token, typeof(token))
+    console.log('persistData', token)
     await AsyncStorage.setItem('userToken', token);
   };
 

@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { getActivityList, getManagerActivityList } from '../services/productServices';
 import InfoCardSmall from '../components/InfoCardSmall';
 import Loader from '../components/old_components/Loader';
+import InfoCards from '../components/InfoCards';
 
 const { width } = Dimensions.get('window');
 
@@ -151,7 +152,7 @@ const fetchActivityDetails = () => {
       };
     getManagerActivityList(data)
         .then((res) => {
-            console.log('response',res?.data)
+            // console.log('response',res?.data)
             setActivities(res?.data?.activity_list);
             setOverdue(res?.data?.over_due_count);
             setToday(res?.data?.due_today);
@@ -173,6 +174,12 @@ const handleCardClick = (callType) => {
     router.push({
         pathname: 'activity',
         params: { call_type: callType },
+    });
+};
+
+const handleCardClicks = () => {
+    router.push({
+        pathname: 'Test',
     });
 };
 
@@ -286,6 +293,15 @@ return (
                         iconName="calendar-clock-outline"
                         gradientColors={cardColors[2]}
                         onPress={() => handleCardClick('GET_FC')}
+                    />
+                </Row>
+                <Row>
+                     <InfoCards
+                        number={1}
+                        label="LAB"
+                        iconName="application-edit-outline"
+                        gradientColors={cardColors[1]}
+                        onPress={() => handleCardClicks()}
                     />
                 </Row>
             </ScrollView>

@@ -1,14 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const getDbName = async () => {
-  let dbName = await AsyncStorage.getItem('dbName');
-  return dbName;
-}
+// const getDbName = async () => {
+//   let dbName = await AsyncStorage.getItem('dbName');
+//   return dbName;
+// }
 // const localhost = "https://www.atomwalk.com"
-const localhost = "https://www.atomwalk.com"
+const localhost = "https://crm.atomwalk.com"
 
 const apiURL = "/api";
-const db_name = getDbName();
+const db_name = "LMS_002";
 // console.log('Dbbvjkdvnc',db_name)
 export const endpoint = `${localhost}${apiURL}`;
 
@@ -68,4 +68,11 @@ export const getClaimApproverList = `${endpoint}/get_claim_approve_list/${db_nam
 export const getActivities = `${endpoint}/get_user_activity/${db_name}/`;
 export const getActivityQc = `${endpoint}/get_activity_data/${db_name}/`;
 export const processActivity = `${endpoint}/process_activity_data/${db_name}/`;
+
+export const bookingListURL = `${endpoint}/get_user_booking_list/${db_name}/`;
+
+// export const empLoginURL = async () => {
+//   const db_name = await getDbName();
+//   return `${newendpoint}/emp_user_login/${db_name}/`;
+// };
 

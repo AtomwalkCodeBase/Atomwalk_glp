@@ -17,6 +17,10 @@ export default function RootLayout() {
       <Stack.Screen name="QcData/index" options={{headerShown:false}}/>
       <Stack.Screen name="ActivityCompleted/index" options={{headerShown:false}}/>
       <Stack.Screen name="MarkCompleteScreen/index" options={{headerShown:false}}/>
+      <Stack.Screen name="Test/index" options={{headerShown:false}}/>
+      <Stack.Screen name="LabActivity/index" options={{headerShown:false}}/>
+      <Stack.Screen name="CameraScreen/index" options={{headerShown:false}}/>
+      <Stack.Screen name="AnalysisScreen/index" options={{headerShown:false}}/>
     </Stack>
     </AppProvider>
   );

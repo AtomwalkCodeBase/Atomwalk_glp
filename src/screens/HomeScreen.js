@@ -9,6 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { getActivityList } from '../services/productServices';
 import { MaterialIcons } from '@expo/vector-icons';
+import InfoCards from '../components/InfoCards';
 
 const { width } = Dimensions.get('window');
 
@@ -202,6 +203,12 @@ const HomePage = () => {
         params: { ref_num: id },
     });
 };
+
+const handleCardClicks = () => {
+    router.push({
+        pathname: 'Test',
+    });
+};
   // const handleOverdueClick = () => alert('Overdue Activities Clicked');
   const handleOverdueClick = () => {
     router.push({
@@ -237,6 +244,9 @@ const HomePage = () => {
           <InfoCard number={pending} label="PENDING" iconName="format-list-checks" gradientColors={['#f09819', '#ff512f']} onPress={handlePendingClick} />
           <InfoCard number={overdue} label="OVER DUE" iconName="alert" gradientColors={['#e52d27', '#b31217']} onPress={handleOverdueClick} />
         </Row>       
+        <Row>
+          <InfoCards number={1} label="LAB" iconName="application-edit-outline" gradientColors={['#FF6F61', '#D32F2F']} onPress={() => handleCardClicks()}/>
+        </Row>
         {/* Scrollable Activity List */}
       <ActivityContainer>
         <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#454545' }}>My Projects</Text>
