@@ -216,6 +216,12 @@ const handleCardClicks = () => {
     });
   };
 
+  const handleCaptureClick = () => {
+    router.push({
+      pathname: 'ProjectList',
+    });
+  }
+
   // console.log('Activity List======',activities)
 
   return (
@@ -231,11 +237,15 @@ const handleCardClicks = () => {
         <SubHeader>Welcome to Atomwalk Office!</SubHeader>
         </CompanyTextContainer>
         </CompanyContainer>
+        <ScrollView nestedScrollEnabled={true}
+        showsHorizontalScrollIndicator={false} 
+        showsVerticalScrollIndicator={false}
+        >
+
       {activities.length>0?<><ProfileTextContainer>
           <CompanyName>My Activities</CompanyName>
         </ProfileTextContainer>
         {/* Cards Layout */}
-       
         <Row>
           <InfoCard number={total} label="TOTAL" iconName="beaker-outline" gradientColors={['#007bff', '#00c6ff']} onPress={handleProjectClick} />
           <InfoCard number={completed} label="DONE" iconName="check-circle" gradientColors={['#38ef7d', '#11998e']} onPress={handleCompletedClick} />
@@ -245,7 +255,9 @@ const handleCardClicks = () => {
           <InfoCard number={overdue} label="OVER DUE" iconName="alert" gradientColors={['#e52d27', '#b31217']} onPress={handleOverdueClick} />
         </Row>       
         <Row>
-          <InfoCards number={1} label="LAB" iconName="application-edit-outline" gradientColors={['#FF6F61', '#D32F2F']} onPress={() => handleCardClicks()}/>
+          <InfoCards number={3} label="My Bookings" iconName="application-edit-outline" gradientColors={['#FF6F61', '#D32F2F']} onPress={() => handleCardClicks()}/>
+          <InfoCard number={1} label="Capture Data" iconName="beaker-outline" gradientColors={['#007bff', '#00c6ff']}   onPress={handleCaptureClick} />
+
         </Row>
         {/* Scrollable Activity List */}
       <ActivityContainer>
@@ -268,6 +280,8 @@ const handleCardClicks = () => {
       <MaterialIcons name="info-outline" size={48} color="#4CAF50" />
       <Text style={styles.text}>No Projects Available</Text>
     </View>}
+
+    </ScrollView>
       </GradientBackground>
     </Container>
   );

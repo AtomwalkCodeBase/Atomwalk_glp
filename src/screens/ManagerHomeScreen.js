@@ -298,7 +298,7 @@ return (
                 <Row>
                      <InfoCards
                         number={1}
-                        label="LAB"
+                        label="My Bookings"
                         iconName="application-edit-outline"
                         gradientColors={cardColors[1]}
                         onPress={() => handleCardClicks()}
