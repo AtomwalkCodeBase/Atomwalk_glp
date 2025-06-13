@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import { LabCard } from '../components/mycomponents/LabCard';
 // import { LabCard } from '../components/LabCard';

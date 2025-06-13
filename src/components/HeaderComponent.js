@@ -1,46 +1,51 @@
-import React from 'react';
-import { Text, Image, Dimensions } from 'react-native';
-import styled from 'styled-components/native';
+import React from "react";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
+import styled from "styled-components/native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-
-const { width, height } = Dimensions.get('window');
-
-const HeaderContainer = styled.View`
+// Styled Components
+const HeaderContainer = styled(SafeAreaView)`
   background-color: #c2fbcd;
-  padding: 15px 10px;
-  margin-top: ${height < 806 ? '20px' : '48px'};
+  padding: 10px 20px;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   border-bottom-width: 1px;
-  border-bottom-color: #ccc;
-  elevation: 2;
-  width: 100%;
-
+  border-bottom-color: #e0e0e0;
 `;
 
-// Styled text for the header title
-const HeaderText = styled.Text`
-  font-size: ${props => (props.width < 360 ? '18px' : '20px')};
+const BackButton = styled(TouchableOpacity)`
+  width: 30px;
+  align-items: flex-start;
+`;
+
+const HeaderTitle = styled(Text)`
+  font-size: 20px;
   font-weight: bold;
+  color: #000;
+  text-align: center;
+  flex: 1;
 `;
 
-// Styled container for the back button
-const BackButton = styled.TouchableOpacity`
-  padding: 5px;
+const PlaceholderView = styled(View)`
+  width: 30px;
 `;
 
-// Path to the local back icon
-const BackIcon = require('../../assets/images/back_icon.png'); // Adjust the path according to your file structure
-
+// HeaderComponent
 const HeaderComponent = ({ headerTitle, onBackPress }) => {
   return (
-    <HeaderContainer>
-      
-      <HeaderText>{headerTitle}</HeaderText>
+    <HeaderContainer edges={["top"]}>
+      {/* Back Button */}
       <BackButton onPress={onBackPress}>
-        <Image source={BackIcon} style={{ width: 24, height: 24 }} />
+        <Ionicons name="arrow-back" size={24} color="#000" />
       </BackButton>
+
+      {/* Title */}
+      <HeaderTitle numberOfLines={1}>{headerTitle}</HeaderTitle>
+
+      {/* Placeholder */}
+      <PlaceholderView />
     </HeaderContainer>
   );
 };

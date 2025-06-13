@@ -21,6 +21,11 @@ export default function RootLayout() {
       <Stack.Screen name="LabActivity/index" options={{headerShown:false}}/>
       <Stack.Screen name="CameraScreen/index" options={{headerShown:false}}/>
       <Stack.Screen name="AnalysisScreen/index" options={{headerShown:false}}/>
+      {/* <Stack.Screen name="BookmarkScreen/index" options={{headerShown:false}}/> */}
+      <Stack.Screen name="ProjectList/index" options={{headerShown:false}}/>
+      <Stack.Screen name="GroupList/index" options={{headerShown:false}}/>
+      <Stack.Screen name="TestList/index" options={{headerShown:false}}/>
+      <Stack.Screen name="TestDetail/index" options={{headerShown:false}}/>
     </Stack>
     </AppProvider>
   );

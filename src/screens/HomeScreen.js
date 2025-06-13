@@ -83,11 +83,12 @@ const SubHeader = styled.Text`
 `;
 
 const ActivityContainer = styled.View`
-  width: 95%;
   padding: 20px;
   height: 100%;
   background-color: white;
-  border-radius: 20px 20px 0px 0px;
+  border-radius: 20px;
+  flex: 1;
+  margin-bottom: 20px;
 `;
 
 const ActivityRow = styled(TouchableOpacity)`
@@ -262,19 +263,15 @@ const handleCardClicks = () => {
         {/* Scrollable Activity List */}
       <ActivityContainer>
         <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#454545' }}>My Projects</Text>
-          <FlatList
-            data={[...activities].reverse()}
-            keyExtractor={(item) => item.activity_id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <ActivityRow onPress={() => handleActivityClick(item.ref_num)}>
-                <ActivityText>{item.ref_num}</ActivityText>
-                <StatusText>{item.status}</StatusText>
-              </ActivityRow>
-            )}
-            style={{ maxHeight: 200 }}
-          />
-        </ActivityContainer>
+        <View>
+          {[...activities].reverse().map((item) => (
+            <ActivityRow key={item.activity_id} onPress={() => handleActivityClick(item.ref_num)}>
+              <ActivityText>{item.ref_num}</ActivityText>
+              <StatusText>{item.status}</StatusText>
+            </ActivityRow>
+          ))}
+        </View>
+      </ActivityContainer>
       </>:
       <View style={styles.container}>
       <MaterialIcons name="info-outline" size={48} color="#4CAF50" />
