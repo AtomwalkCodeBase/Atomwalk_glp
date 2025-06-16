@@ -1,9 +1,11 @@
 import { Stack } from "expo-router";
-import {AppProvider} from '../context/AppContext'
+import {AppProvider} from '../context/AppContext';
+import { ProjectProvider } from '../context/ProjectContext';
 
 export default function RootLayout() {
   return (
     <AppProvider>
+      <ProjectProvider>
     <Stack>
       <Stack.Screen name="index"/>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -27,6 +29,7 @@ export default function RootLayout() {
       <Stack.Screen name="TestList/index" options={{headerShown:false}}/>
       <Stack.Screen name="TestDetail/index" options={{headerShown:false}}/>
     </Stack>
+    </ProjectProvider>
     </AppProvider>
   );
 }

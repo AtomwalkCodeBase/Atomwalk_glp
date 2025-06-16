@@ -1,40 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { getActivityList } from '../services/productServices';
 import { useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
+import { ProjectContext } from '../../context/ProjectContext';
 
 const ProjectList = () => {
-  const [activities, setActivities] = useState([]);
+  const { projects, setSelectedProjectRef } = useContext(ProjectContext);
   const router = useRouter();
 
-  useEffect(() => {
-    getActivityList()
-      .then((res) => {
-        const uniqueActivities = res?.data?.a_list.reduce((acc, current) => {
-          const x = acc.find(item => item.ref_num === current.ref_num);
-          if (!x) acc.push(current);
-          return acc;
-        }, []);
-        
-        // Sort activities: In progress first, then completed
-        const sortedActivities = uniqueActivities.sort((a, b) => {
-          const getStatusPriority = (status) => {
-            switch (status?.toLowerCase()) {
-              case 'in progress': return 1;
-              case 'completed': return 2;
-              default: return 3;
-            }
-          };
-          return getStatusPriority(a.status) - getStatusPriority(b.status);
-        });
-        
-        setActivities(sortedActivities);
-      })
-      .catch((err) => console.error('Error fetching activities', err));
-  }, []);
-
   const handleSelectProject = (ref_num) => {
+    setSelectedProjectRef(ref_num);
     router.push({
       pathname: 'GroupList',
       params: { ref_num },
@@ -49,7 +24,7 @@ const ProjectList = () => {
     }
   };
 
-  const renderItem = ({ item }) => (
+  const renderProjectItem = ({ item }) => (
     <TouchableOpacity 
       style={[styles.item, { borderLeftColor: getStatusColor(item.status) }]} 
       onPress={() => handleSelectProject(item.ref_num)}
@@ -74,13 +49,13 @@ const ProjectList = () => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.sectionTitle}>Select Project for Data Capture</Text>
-          <Text style={styles.projectCount}>{activities.length} Projects Available</Text>
+          <Text style={styles.projectCount}>{projects.length} Projects Available</Text>
         </View>
         
         <FlatList
-          data={activities}
+          data={projects}
           keyExtractor={(item) => item.activity_id}
-          renderItem={renderItem}
+          renderItem={renderProjectItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
           style={styles.flatList}

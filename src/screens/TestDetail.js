@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import CaptureDataModal from '../components/CaptureDataModal';
 import TestList2 from './TestList2';
 import HeaderComponent from '../components/HeaderComponent';
+import { ProjectContext } from '../../context/ProjectContext';
 
 const TestDetail = () => {
+  const { selectedProjectRef } = useContext(ProjectContext);
   const { ref_num, group, test } = useLocalSearchParams();
   const router = useRouter();
 

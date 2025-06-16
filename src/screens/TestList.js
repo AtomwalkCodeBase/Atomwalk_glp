@@ -1,33 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
-import { getGLPTestList } from '../services/productServices';
+import { ProjectContext } from '../../context/ProjectContext'
 
 const TestList = () => {
+  const { testsByProject, selectedProjectRef } = useContext(ProjectContext);
   const { ref_num, group } = useLocalSearchParams();
-
-  const [tests, setTests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const tests = testsByProject[ref_num] || [];
   const router = useRouter();
-  const groupData = JSON.parse(group); 
-
-  useEffect(() => {
-    fetchTestList();
-  }, []);
-
-  const fetchTestList = async () => {
-    try {
-      const response = await getGLPTestList(ref_num)
-      if (response.status === 200) {
-        const testList = response.data || [];
-        setTests(testList);
-      }
-    }
-    catch (error) {
-      console.error('Error fetching test list:', error);
-    }
-  };
+  const groupData = JSON.parse(group);
 
   // console.log('Tests:', tests);
   // Updated rat data with 10 rats (5 male, 5 female)
@@ -122,8 +104,8 @@ const TestList = () => {
       pathname: 'TestDetail',
       params: {
         ref_num,
-        group: JSON.stringify(groupData), // Pass group object as a string
-        test: JSON.stringify(test) // Pass test object as a string
+        group: JSON.stringify(groupData),
+        test: JSON.stringify(test)
       }
     });
   };
@@ -141,41 +123,47 @@ const TestList = () => {
         {/* Tests Section */}
         <View style={styles.testsContainer}>
           <Text style={styles.sectionTitle}>Tests Overview</Text>
-          {tests.map((test) => (
-            <TouchableOpacity
-              key={test.id}
-              style={styles.testCard}
-              onPress={() => handleTestClick(test)}
-            >
-              <View style={styles.testHeader}>
-                <Text style={styles.testName}>{test.name}</Text>
-                {/* <View style={[styles.statusBadge, { backgroundColor: getStatusColor(test.status) }]}>
+          {tests.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No tests are available</Text>
+            </View>
+          ) : (
+            tests.map((test) => (
+              <TouchableOpacity
+                key={test.id}
+                style={styles.testCard}
+                onPress={() => handleTestClick(test)}
+              >
+                <View style={styles.testHeader}>
+                  <Text style={styles.testName}>{test.name}</Text>
+                  {/* <View style={[styles.statusBadge, { backgroundColor: getStatusColor(test.status) }]}>
                   <Text style={styles.statusText}>{test.status}</Text>
                 </View> */}
-              </View>
-              <View style={styles.testDetails}>
-                <Text style={styles.frequencyText}>
-                  Frequency: {frequencyLabels[test.test_frequency]}
-                </Text>
-                <Text style={styles.progressText}>
-                  Progress: {!test.completedCount && !test.totalCount
-                    ? 'Not Started'
-                    : `${test.completedCount}/${test.totalCount} completed`}
-                </Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    {
-                      width: !test.completedCount && !test.totalCount
-                        ? '0%'
-                        : `${(test.completedCount / test.totalCount) * 100}%`
-                    }]}
-                />
-              </View>
-            </TouchableOpacity>
-          ))}
+                </View>
+                <View style={styles.testDetails}>
+                  <Text style={styles.frequencyText}>
+                    Frequency: {frequencyLabels[test.test_frequency]}
+                  </Text>
+                  <Text style={styles.progressText}>
+                    Progress: {!test.completedCount && !test.totalCount
+                      ? 'Not Started'
+                      : `${test.completedCount}/${test.totalCount} completed`}
+                  </Text>
+                </View>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: !test.completedCount && !test.totalCount
+                          ? '0%'
+                          : `${(test.completedCount / test.totalCount) * 100}%`
+                      }]}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
 
@@ -277,6 +265,16 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#3b82f6',
     borderRadius: 3,
+  },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#6c757d',
+    textAlign: 'center',
   },
 });
 

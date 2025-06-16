@@ -1,86 +1,58 @@
-import { useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
-import { getGLPGroupList } from '../services/productServices';
+import { ProjectContext } from '../../context/ProjectContext';
 
 const GroupList = () => {
-  const [groups, setGroups] = useState([]);
+  const { groupsByProject, projectTitle, selectedProjectRef, setSelectedGroup } = useContext(ProjectContext);
   const { ref_num } = useLocalSearchParams();
   const router = useRouter();
-  const [projectTitle, setProjectTitle] = useState('');
+  const groups = groupsByProject[ref_num] || [];
 
   // Hardcoded data for now - replace with API call later
-  const hardcodedGroups = [
-    {
-      group_id: '1',
-      name: 'Group1',
-      total_tests: 5,
-      completed_tests: 5,
-      status: 'Completed'
-    },
-    {
-      group_id: '2',
-      name: 'Group2',
-      total_tests: 5,
-      completed_tests: 2,
-      status: 'Pending'
-    },
-    {
-      group_id: '3',
-      name: 'Group3',
-      total_tests: 5,
-      completed_tests: 0,
-      status: 'Not Started'
-    },
-    {
-      group_id: '4',
-      name: 'Group3',
-      total_tests: 5,
-      completed_tests: 0,
-      status: 'Not Started'
-    },
-    {
-      group_id: '5',
-      name: 'Group3',
-      total_tests: 5,
-      completed_tests: 0,
-      status: 'Not Started'
-    },
-  ];
-
-  useEffect(() => {
-    // TODO: Replace with actual API call
-    // fetchGroupsByProject(ref_num)
-    //   .then((res) => {
-    //     setGroups(res.data.groups);
-    //   })
-    //   .catch((err) => console.error('Error fetching groups', err));
-
-    // For now, use hardcoded data
-    fetchGroupList();
-    // setGroups(hardcodedGroups);
-  }, [ref_num]);
-
-  const fetchGroupList = async () => {
-    try {
-      const response = await getGLPGroupList(ref_num);
-      if (response.status === 200) {
-        const data = response.data;
-        setGroups(data);
-        setProjectTitle(data[0].project_title || 'Project Title');
-
-      }
-    }
-    catch (error) {
-      console.error('Error fetching group list:', error);
-    }
-  }
+  // const hardcodedGroups = [
+  //   {
+  //     group_id: '1',
+  //     name: 'Group1',
+  //     total_tests: 5,
+  //     completed_tests: 5,
+  //     status: 'Completed'
+  //   },
+  //   {
+  //     group_id: '2',
+  //     name: 'Group2',
+  //     total_tests: 5,
+  //     completed_tests: 2,
+  //     status: 'Pending'
+  //   },
+  //   {
+  //     group_id: '3',
+  //     name: 'Group3',
+  //     total_tests: 5,
+  //     completed_tests: 0,
+  //     status: 'Not Started'
+  //   },
+  //   {
+  //     group_id: '4',
+  //     name: 'Group3',
+  //     total_tests: 5,
+  //     completed_tests: 0,
+  //     status: 'Not Started'
+  //   },
+  //   {
+  //     group_id: '5',
+  //     name: 'Group3',
+  //     total_tests: 5,
+  //     completed_tests: 0,
+  //     status: 'Not Started'
+  //   },
+  // ];
 
   const handleSelectGroup = (item) => {
-    // Navigate to test list or detail page
+    setSelectedGroup(item);
     router.push({
-      pathname: 'TestList', // or whatever your next page is called
+      pathname: 'TestList',
       params: {
         ref_num,
         group: JSON.stringify(item)
@@ -199,13 +171,19 @@ const GroupList = () => {
         {/* <Text style={styles.pageTitle}>Select Groups</Text> */}
       </View>
 
-      <FlatList
-        data={groups}
-        keyExtractor={(item) => item.group_id}
-        renderItem={renderGroupItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-      />
+      {groups.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No groups are available</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={groups}
+          keyExtractor={(item) => item.group_id}
+          renderItem={renderGroupItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+        />
+      )}
     </View>
   );
 };
@@ -239,12 +217,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     color: '#6c757d',
-    width: 60, // fixed width to align wrapped lines
+    width: 60,
   },
   value: {
     fontSize: 16,
     color: '#6c757d',
-    flex: 1, // take remaining space and wrap under the label
+    flex: 1, 
   },
 
   pageTitle: {
@@ -331,6 +309,17 @@ const styles = StyleSheet.create({
     color: '#343a40',
     minWidth: 40,
     textAlign: 'right',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#6c757d',
+    textAlign: 'center',
   },
 });
 
