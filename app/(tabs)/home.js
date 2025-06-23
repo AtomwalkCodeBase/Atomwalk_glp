@@ -1,6 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
-import HomeScreen from '../../src/screens/HomeScreen';
+// import HomeScreen from '../../src/screens/HomeScreen';
+import NewHomeScreen from '../../src/screens/NewHomeScreen';
 import PinPopup from '../../src/screens/PinPopup';
 import { getProfileInfo } from '../../src/services/authServices';
 import ManagerHomePage from '../../src/screens/ManagerHomeScreen';
@@ -25,7 +26,7 @@ const Home = () => {
 
   return (
     <SafeAreaView>
-      {isManager ? <ManagerHomePage /> : <HomeScreen />}
+      {isManager ? <ManagerHomePage /> : <NewHomeScreen />}
       <PinPopup />
     </SafeAreaView>
   );

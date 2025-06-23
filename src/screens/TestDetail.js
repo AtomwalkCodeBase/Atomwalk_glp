@@ -7,8 +7,8 @@ import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 
 const TestDetail = () => {
-  const { selectedProjectRef } = useContext(ProjectContext);
-  const { ref_num, group, test } = useLocalSearchParams();
+  const { projectTitles, testsByProject, groupsByProject } = useContext(ProjectContext);
+  const { ref_num } = useLocalSearchParams();
   const router = useRouter();
 
   // Parse the stringified JSON data

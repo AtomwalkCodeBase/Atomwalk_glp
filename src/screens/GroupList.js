@@ -5,10 +5,11 @@ import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 
 const GroupList = () => {
-  const { groupsByProject, projectTitle, selectedProjectRef, setSelectedGroup } = useContext(ProjectContext);
+  const { groupsByProject, projectTitles, setSelectedGroup } = useContext(ProjectContext);
   const { ref_num } = useLocalSearchParams();
   const router = useRouter();
   const groups = groupsByProject[ref_num] || [];
+  const projectTitle = projectTitles[ref_num] || ref_num;
 
   // Hardcoded data for now - replace with API call later
   // const hardcodedGroups = [
@@ -52,10 +53,10 @@ const GroupList = () => {
   const handleSelectGroup = (item) => {
     setSelectedGroup(item);
     router.push({
-      pathname: 'TestList',
+      pathname: 'StudyResult',
       params: {
         ref_num,
-        group: JSON.stringify(item)
+        selectedGroup: item.study_type,
       },
     });
   };
@@ -105,7 +106,7 @@ const GroupList = () => {
       onPress={() => handleSelectGroup(item)}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.groupName}>{item.name}</Text>
+        <Text style={styles.groupName}>{item.study_type || 'unknown'}</Text>
         {/* <View style={[
           styles.statusBadge,
           { backgroundColor: getStatusBgColor(item.status) }
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
   },
   projectHeader: {
     fontSize: 16,
-    color: '#6c757d',
+    color: '#444',
     marginBottom: 4,
   },
   labelValueContainer: {
@@ -216,15 +217,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: '#6c757d',
+    color: '#444',
     width: 60,
   },
   value: {
     fontSize: 16,
-    color: '#6c757d',
+    color: '#444',
     flex: 1, 
   },
-
   pageTitle: {
     fontSize: 20,
     fontWeight: 'bold',

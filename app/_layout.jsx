@@ -28,6 +28,9 @@ export default function RootLayout() {
       <Stack.Screen name="GroupList/index" options={{headerShown:false}}/>
       <Stack.Screen name="TestList/index" options={{headerShown:false}}/>
       <Stack.Screen name="TestDetail/index" options={{headerShown:false}}/>
+      <Stack.Screen name="ProjectDashboard/index" options={{headerShown:false}}/>
+      <Stack.Screen name="StudyResult/index" options={{headerShown:false}}/>
+      <Stack.Screen name="CaptureData/index" options={{headerShown:false}}/>
     </Stack>
     </ProjectProvider>
     </AppProvider>

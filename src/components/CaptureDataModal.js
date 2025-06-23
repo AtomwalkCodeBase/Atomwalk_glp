@@ -1,87 +1,77 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 
-const CaptureDataModal = ({ visible, onClose, selectedAnimal, selectedTest }) => {
-  const [testValues, setTestValues] = useState({}); // Store input values for test_type or test_sub_type
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
-  // Determine test items based on test_sub_type or test_type
-  const testItems = selectedTest?.test_sub_type
-    ? Array.isArray(selectedTest.test_sub_type)
-      ? selectedTest.test_sub_type.map((subtype) => ({ subtype, unit: selectedTest.test_unit }))
-      : [{ subtype: selectedTest.test_sub_type, unit: selectedTest.test_unit }]
-    : [{ subtype: selectedTest?.test_type, unit: selectedTest.test_unit }];
-
-  const handleInputChange = (key, value) => {
-    setTestValues((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveResult = () => {
-    // Placeholder for saving results to API
-    console.log('Saving results:', testValues);
-    onClose();
-  };
+const CaptureDataModal = ({
+  visible,
+  ratId,
+  subTypes,
+  units,
+  normalRanges,
+  data,
+  onDataChange,
+  onSubmit,
+  onClose,
+  isDisabled,
+}) => {
+  const filledFields = Object.values(data).filter(v => v.trim() !== '').length;
+  const totalFields = subTypes.length;
+  const percentage = (filledFields / totalFields) * 100;
 
   return (
     <Modal
-      animationType="slide"
-      transparent={true}
       visible={visible}
+      transparent={true}
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-          {/* Header with Close Button */}
-          <View style={styles.headerContainer}>
-            <Text style={styles.modalHeader}>
-              {selectedAnimal ? `${selectedAnimal.id} (${selectedAnimal.gender})` : 'No Animal Selected'}
-            </Text>
+      <TouchableOpacity style={styles.modalOverlay} onPress={onClose} activeOpacity={1}>
+        <View style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Enter Data for {ratId}</Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <MaterialIcons name="close" size={24} color="#1e293b" />
+              <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Horizontal Line */}
-          <View style={styles.horizontalLine} />
-
-          {/* Scrollable Content */}
+          {/* Input Fields */}
           <ScrollView
-            style={styles.scrollView}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            style={styles.measurementsContainer}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.measurementsContent}
           >
-            {testItems.map((item, index) => (
-              <View key={item.subtype || index} style={styles.inputRow}>
-                <Text style={styles.inputLabel}>
-                  {selectedTest.test_sub_type ? 'Test Subtype' : 'Test Type'}: {item.subtype}
-                </Text>
-                <View style={styles.inputWrapper}>
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter value"
-                      value={testValues[item.subtype] || ''}
-                      onChangeText={(text) => handleInputChange(item.subtype, text)}
-                      keyboardType="numeric"
-                    />
-                    <Text style={styles.unit}>{item.unit}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.editButton} disabled={true}>
-                    <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
+            {subTypes.map((subType, index) => (
+              <View key={subType} style={styles.measurementRow}>
+                <View style={styles.fieldInfo}>
+                  <Text style={styles.fieldLabel}>{subType}</Text>
+                  <Text style={styles.normalRange}>
+                    {normalRanges[subType]} {units[subType]}
+                  </Text>
+                </View>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={[styles.input, isDisabled && styles.disabledInput]}
+                    placeholder="Enter value"
+                    value={data[subType] || ''}
+                    onChangeText={(value) => onDataChange(subType, value)}
+                    keyboardType="numeric"
+                    editable={!isDisabled}
+                    returnKeyType={index === subTypes.length - 1 ? 'done' : 'next'}
+                  />
+                  <Text style={styles.unit}>{units[subType]}</Text>
                 </View>
               </View>
             ))}
           </ScrollView>
 
-          {/* Save Result Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveResult}>
-            <Text style={styles.saveButtonText}>Save Result</Text>
-          </TouchableOpacity>
+          {/* Submit Button */}
+          {!isDisabled && (
+            <TouchableOpacity style={styles.submitButton} onPress={onSubmit}>
+              <Text style={styles.submitButtonText}>Submit</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </TouchableOpacity>
     </Modal>
@@ -95,94 +85,103 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
+  modalContainer: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
+    borderRadius: 16,
+    width: Math.min(SCREEN_WIDTH * 0.9, 400),
+    maxHeight: SCREEN_HEIGHT * 0.7,
+    minHeight: 200,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
-  },
-  modalHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    flex: 1,
-    textAlign: 'center',
-  },
-  closeButton: {
-    padding: 5,
-  },
-  horizontalLine: {
+    padding: 16,
+    backgroundColor: '#f1f5f9',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    marginBottom: 20,
+    marginBottom: 12,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-  scrollView: {
-    flexGrow: 0,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
   },
-  scrollContent: {
-    paddingBottom: 20,
+  closeButton: {
+    padding: 6,
   },
-  inputRow: {
-    marginBottom: 15,
-  },
-  inputLabel: {
-    fontSize: 16,
+  closeButtonText: {
+    fontSize: 20,
     color: '#64748b',
-    marginBottom: 5,
   },
-  inputWrapper: {
+  measurementsContainer: {
+    paddingHorizontal: 16,
+  },
+  measurementRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    margin: 4,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  fieldInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  normalRange: {
+    fontSize: 12,
+    color: '#64748b',
   },
   inputContainer: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#d1d5db',
     borderRadius: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#ffffff',
+    minWidth: 180,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 10,
+    height: 40,
+    fontSize: 15,
+    textAlign: 'left',
+  },
+  disabledInput: {
+    opacity: 0.5,
   },
   unit: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#64748b',
-    marginLeft: 10,
+    marginLeft: 4,
   },
-  editButton: {
-    backgroundColor: '#e2e8f0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  editButtonText: {
-    fontSize: 14,
-    color: '#1e293b',
-    fontWeight: '600',
-  },
-  saveButton: {
+  submitButton: {
     backgroundColor: '#22c55e',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    margin: 16,
   },
-  saveButtonText: {
-    fontSize: 16,
+  submitButtonText: {
     color: '#ffffff',
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
