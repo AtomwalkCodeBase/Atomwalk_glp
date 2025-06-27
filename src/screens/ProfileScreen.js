@@ -165,14 +165,14 @@ const ProfileScreen = () => {
       <GradientBackground>
       <HeaderComponent headerTitle="My Profile" onBackPress={handleBackPress} />
       <Container>
-        <AvatarContainer entering={FadeIn.duration(700)} exiting={FadeOut.duration(500)}>
+        <AvatarContainer>
           <ProfileImage source={{ uri: profile?.image }} />
         </AvatarContainer>
 
-        <UserName entering={FadeIn.duration(500)}>{profile?.emp_data?.name}</UserName>
-        <UserName entering={FadeIn.duration(600)}>{profile?.user_name}</UserName>
+        <UserName>{profile?.emp_data?.name}</UserName>
+        <UserName>{profile?.user_name}</UserName>
 
-        <IsManagerContainer entering={SlideInLeft.delay(300).duration(400)}>
+        <IsManagerContainer>
           <ManagerText>Is Manager:</ManagerText>
           <MaterialCommunityIcons
             name={isManager ? "check-circle" : "cancel"}
@@ -205,12 +205,12 @@ const ProfileScreen = () => {
 
         </DetailsContainer>
 
-        <LogOutButton onPress={logout} entering={FadeIn.delay(700)}>
+        <LogOutButton onPress={logout}>
           <MaterialCommunityIcons name="logout" size={24} color="#d9534f" />
           <LogOutText>Log Out</LogOutText>
         </LogOutButton>
 
-        <ChangePasswordButton onPress={handlePressPassword} entering={FadeIn.delay(800)}>
+        <ChangePasswordButton onPress={handlePressPassword}>
           <ChangePasswordText>{userPin?"Update Your Pin":"Set Your Pin"}</ChangePasswordText>
         </ChangePasswordButton>
       </Container>

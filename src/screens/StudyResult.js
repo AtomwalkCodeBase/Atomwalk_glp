@@ -1,201 +1,170 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 import DropdownPicker from '../components/DropdownPicker';
+import { StyleSheet } from 'react-native';
 
 const StudyResult = () => {
-  const { ref_num, selectedGroup: initialGroup, selectedTab: initialTab, selectedTest: initialTest } = useLocalSearchParams();
+  const { ref_num, refresh } = useLocalSearchParams();
   const router = useRouter();
-  const { projectTitles, groupsByProject, testsByProject, todaysTasks, getTestSchedule, getCompletionStatus } = useContext(ProjectContext);
+  const {
+    projectTitles,
+    groupsByProject,
+    testsByProject,
+    getTestsForDate,
+    getCompletionStatus,
+    CURRENT_DATE,
+  } = useContext(ProjectContext);
   const projectTitle = projectTitles[ref_num] || ref_num;
 
-  const tabs = ['Today', 'Upcoming', 'Overdue', 'Completed'];
+  const tabs = ['Yesterday', 'Today', 'Tomorrow'];
+  const TODAY = CURRENT_DATE;
+
+  const tabDates = {
+    Yesterday: new Date(CURRENT_DATE),
+    Today: CURRENT_DATE,
+    Tomorrow: new Date(CURRENT_DATE)
+  };
+  tabDates.Yesterday.setDate(CURRENT_DATE.getDate() - 1);
+  tabDates.Tomorrow.setDate(CURRENT_DATE.getDate() + 1);
 
   const groups = groupsByProject[ref_num] || [];
   const allTests = testsByProject[ref_num] || [];
 
-  const validInitialGroup = groups.find(g => g.study_type === initialGroup) ? initialGroup : 'All';
-  const validInitialTab = tabs.includes(initialTab) ? initialTab : 'Today';
-  const validInitialTest = initialTest && (initialTest === 'All' || allTests.some(t => t.name === initialTest)) ? initialTest : 'All';
-  const [selectedGroup, setSelectedGroup] = useState(validInitialGroup);
-  const [selectedTest, setSelectedTest] = useState(validInitialTest);
-  const [selectedTab, setSelectedTab] = useState(validInitialTab);
+  const [selectedGroup, setSelectedGroup] = useState('All');
+  const [selectedTest, setSelectedTest] = useState('All');
+  const [selectedTab, setSelectedTab] = useState('Today');
   const [groupedTests, setGroupedTests] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
-  const CURRENT_DATE = new Date('2025-06-14');
-
-  // Validate state when initial params change
-  useEffect(() => {
-    const groupValid = groups.find(g => g.study_type === selectedGroup) || selectedGroup === 'All';
-    const testValid = selectedTest === 'All' || allTests.some(t => t.name === selectedTest);
-    const tabValid = tabs.includes(selectedTab);
-
-    if (!groupValid && selectedGroup !== 'All') {
-      setSelectedGroup('All');
-    }
-    if (!testValid && selectedTest !== 'All') {
-      setSelectedTest('All');
-    }
-    if (!tabValid && selectedTab !== 'Today') {
-      setSelectedTab('Today');
-    }
-  }, [initialGroup, initialTest, initialTab, groups, allTests]);
-
-  useEffect(() => {
-    const projectTasks = todaysTasks.filter(task => task.projectCode === ref_num);
-
-    const testsWithDetails = [];
-    allTests.forEach(test => {
-      if (test.project_code !== ref_num) return;
-      if (selectedTest !== 'All' && test.name !== selectedTest) return;
-
-      const { status, scheduleDates, nextScheduleDate, frequencyLabel } = getTestSchedule(test, CURRENT_DATE);
-      const associatedGroups = projectTasks
-        .filter(task => task.test.id === test.id && task.projectCode === ref_num)
-        .map(task => ({ studyType: task.group.study_type, groupId: task.group.group_id }));
-
-      const groupInfo = associatedGroups.length > 0
-        ? associatedGroups
-        : groups.map(g => ({ studyType: g.study_type, groupId: g.group_id }));
-
-      if (selectedTab === 'Today' && status === 'Today') {
-        groupInfo.forEach(({ studyType, groupId }) => {
-          const completion = getCompletionStatus(ref_num, groupId, test.id, CURRENT_DATE.toISOString().split('T')[0]);
-          testsWithDetails.push({
-            ...test,
-            status,
-            scheduleDate: new Date(CURRENT_DATE),
-            groupName: studyType,
-            groupId,
-            frequencyLabel,
-            completion,
-          });
-        });
-      } else if (selectedTab === 'Upcoming' && nextScheduleDate && nextScheduleDate > CURRENT_DATE) {
-        groupInfo.forEach(({ studyType, groupId }) => {
-          const completion = getCompletionStatus(ref_num, groupId, test.id, nextScheduleDate.toISOString().split('T')[0]);
-          testsWithDetails.push({
-            ...test,
-            status,
-            scheduleDate: nextScheduleDate,
-            groupName: studyType,
-            groupId,
-            frequencyLabel,
-            completion,
-            occurrenceId: `${test.id}-next`,
-          });
-        });
-      } else if (selectedTab === 'Overdue') {
-        scheduleDates.forEach((date, index) => {
-          if (date < CURRENT_DATE) {
-            groupInfo.forEach(({ studyType, groupId }) => {
-              const completion = getCompletionStatus(ref_num, groupId, test.id, date.toISOString().split('T')[0]);
-              if (completion.status === 'Pending') {
-                testsWithDetails.push({
-                  ...test,
-                  status: 'Overdue',
-                  scheduleDate: date,
-                  groupName: studyType,
-                  groupId,
-                  frequencyLabel,
-                  completion,
-                  occurrenceId: `${test.id}-${index}`,
-                });
-              }
-            });
-          }
-        });
-      } else if (selectedTab === 'Completed') {
-        scheduleDates.forEach((date, index) => {
-          if (date < CURRENT_DATE) {
-            groupInfo.forEach(({ studyType, groupId }) => {
-              const completion = getCompletionStatus(ref_num, groupId, test.id, date.toISOString().split('T')[0]);
-              if (completion.status === 'Completed') {
-                testsWithDetails.push({
-                  ...test,
-                  status: 'Completed',
-                  scheduleDate: date,
-                  groupName: studyType,
-                  groupId,
-                  frequencyLabel,
-                  completion,
-                  occurrenceId: `${test.id}-${index}`,
-                });
-              }
-            });
-          }
-        });
-      }
+  const handleNavigation = useCallback((test) => {
+    router.push({
+      pathname: '/CaptureData',
+      params: {
+        ref_num,
+        groupId: test.groupId,
+        test: JSON.stringify(test),
+        scheduleDate: test.scheduleDate.toISOString().split('T')[0],
+      },
     });
+  }, [router, ref_num]);
 
-    const grouped = {};
-    testsWithDetails.forEach(test => {
-      const groupName = test.groupName;
-      if (selectedGroup !== 'All' && groupName !== selectedGroup) return;
-      if (!grouped[groupName]) grouped[groupName] = [];
-      grouped[groupName].push(test);
-    });
+  const fetchTests = useCallback(async (forceRefresh = false) => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      // Get tests for the selected date
+      const dateForTab = tabDates[selectedTab];
+      const fetchedTests = getTestsForDate(ref_num, dateForTab);
 
-    Object.keys(grouped).forEach(groupName => {
-      grouped[groupName].sort((a, b) => {
-        const statusA = a.completion.status === 'Pending' ? 0 : 1;
-        const statusB = b.completion.status === 'Pending' ? 1 : 0;
-        return statusA - statusB;
+      // Filter tests based on selected group and test
+      const filteredTests = fetchedTests.filter(test => {
+        const matchesGroup = selectedGroup === 'All' || test.groupName === selectedGroup;
+        const matchesTest = selectedTest === 'All' || test.name === selectedTest;
+        return matchesGroup && matchesTest;
       });
-    });
 
-    const sortedGroupedTests = Object.keys(grouped)
-      .sort((a, b) => {
-        const hasPendingA = grouped[a].some(test => test.completion.status === 'Pending');
-        const hasPendingB = grouped[b].some(test => test.completion.status === 'Pending');
-        if (hasPendingA && !hasPendingB) return -1;
-        if (!hasPendingA && hasPendingB) return 1;
-        const indexA = groups.findIndex(g => g.study_type === a);
-        const indexB = groups.findIndex(g => g.study_type === b);
-        return indexA - indexB;
-      })
-      .reduce((acc, groupName) => {
-        acc[groupName] = grouped[groupName];
+      // Get completion status for each test
+      const testsWithCompletion = await Promise.all(
+        filteredTests.map(async test => {
+          const completion = await getCompletionStatus(
+            ref_num,
+            test.groupId,
+            test.id,
+            test.scheduleDate.toISOString().split('T')[0],
+            forceRefresh // Pass forceRefresh flag
+          );
+          return { ...test, completion };
+        })
+      );
+
+      // Group tests by group name
+      const grouped = testsWithCompletion.reduce((acc, test) => {
+        const { groupName } = test;
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(test);
         return acc;
       }, {});
 
-    setGroupedTests(sortedGroupedTests);
-  }, [selectedGroup, selectedTest, selectedTab, groupsByProject, testsByProject, todaysTasks, ref_num, getTestSchedule, getCompletionStatus]);
+      setGroupedTests(grouped);
+    } catch (err) {
+      console.error('Error fetching tests:', err);
+      setFetchError('Failed to load tests. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [ref_num, selectedTab, selectedTest, selectedGroup, getTestsForDate, getCompletionStatus]);
+
+  // Handle navigation focus to check for refresh flag
+  useFocusEffect(
+    useCallback(() => {
+      if (refresh === 'true') {
+        fetchTests(true);
+        router.setParams({ refresh: undefined });
+      } else {
+        fetchTests(false);
+      }
+      return () => {};
+    }, [refresh, fetchTests, router])
+  );
+
+  // Format date for display
+  const formatDisplayDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Get test status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Completed': return '#4CAF50';
+      case 'Pending': return '#FF9800';
+      default: return '#9E9E9E';
+    }
+  };
 
   return (
     <View style={styles.container}>
       <HeaderComponent headerTitle="Study Result" onBackPress={() => router.back()} />
+
       <View style={styles.sectionHeader}>
-        <Text style={styles.projectName}>Project: {projectTitle}</Text>
+        <Text style={styles.projectName}>{`Project: ${projectTitle}`}</Text>
+
+        {/* Filters */}
         <View style={styles.filterContainer}>
           <View style={styles.filterRow}>
             <View style={styles.dropdownContainer}>
               <Text style={styles.dropdownLabel}>Select Group</Text>
-            </View>
-            <View style={styles.dropdownContainer}>
-              <Text style={styles.dropdownLabel}>Select Test</Text>
-            </View>
-          </View>
-          <View style={styles.filterRow}>
-            <View style={styles.dropdownContainer}>
               <DropdownPicker
                 label="Group"
                 data={[
                   { label: 'All', value: 'All' },
-                  ...(groupsByProject[ref_num] || []).map(group => ({ label: group.study_type, value: group.study_type })),
+                  ...groups.map(group => ({
+                    label: group.study_type,
+                    value: group.study_type
+                  })),
                 ]}
                 value={selectedGroup}
                 setValue={setSelectedGroup}
               />
             </View>
+
             <View style={styles.dropdownContainer}>
+              <Text style={styles.dropdownLabel}>Select Test</Text>
               <DropdownPicker
                 label="Test"
                 data={[
                   { label: 'All', value: 'All' },
-                  ...[...new Set((testsByProject[ref_num] || []).map(test => test.name))].map(name => ({ label: name, value: name })),
+                  ...[...new Set(allTests.map(test => test.name))].map(name => ({
+                    label: name,
+                    value: name
+                  })),
                 ]}
                 value={selectedTest}
                 setValue={setSelectedTest}
@@ -203,83 +172,130 @@ const StudyResult = () => {
             </View>
           </View>
         </View>
+
+        {/* Date Tabs */}
         <View style={styles.tabContainer}>
           {tabs.map(tab => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, selectedTab === tab ? styles.activeTab : styles.inactiveTab]}
+              style={[
+                styles.tab,
+                selectedTab === tab ? styles.activeTab : styles.inactiveTab
+              ]}
               onPress={() => setSelectedTab(tab)}
             >
-              <Text style={[styles.tabText, selectedTab === tab ? styles.activeTabText : styles.inactiveTabText]}>
+              <Text style={[
+                styles.tabText,
+                selectedTab === tab ? styles.activeTabText : styles.inactiveTabText
+              ]}>
                 {tab}
+              </Text>
+              <Text style={styles.tabDate}>
+                {formatDisplayDate(tabDates[tab])}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
+
+      {/* Test List - Fixed ScrollView */}
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.testsContainer}>
-          {Object.keys(groupedTests).length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No tests are available</Text>
-            </View>
-          ) : (
-            Object.entries(groupedTests).map(([groupName, tests]) => (
-              <View key={groupName} style={styles.groupSection}>
-                <Text style={styles.groupName}>{groupName}</Text>
-                <View style={styles.groupTestsContainer}>
-                  {tests.map(test => (
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0288d1" />
+            <Text style={styles.loadingText}>Loading tests...</Text>
+          </View>
+        ) : fetchError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{fetchError}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => fetchTests(true)} // Force refresh on retry
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : Object.keys(groupedTests).length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {`No tests scheduled for ${selectedTab.toLowerCase()}`}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.testsContainer}>
+            {Object.entries(groupedTests).map(([groupName, groupTests]) => (
+              <View key={`group-${groupName}`} style={styles.groupSection}>
+                <Text style={styles.groupName}>  {`${groupName} [${groupTests[0]?.groupIdUser || 'ID'}]`}</Text>
+
+                {groupTests.map(test => {
+                  const completionPercentage = test.completion.totalCount > 0
+                    ? Math.round((test.completion.completedCount / test.completion.totalCount) * 100)
+                    : 0;
+
+                  return (
                     <TouchableOpacity
-                      key={test.occurrenceId || `${test.id}-${test.groupId}`}
+                      key={`test-${test.id}-${test.groupId}`}
                       style={[
                         styles.testCard,
-                        selectedTab === 'Overdue' ? styles.overdueCard :
-                        test.completion.status === 'Completed' ? styles.completedCard : styles.pendingCard
+                        {
+                          borderLeftColor: getStatusColor(test.completion.status),
+                          opacity: selectedTab === 'Today' ? 1 : 0.7
+                        }
                       ]}
-                      disabled={selectedTab === 'Upcoming'}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/CaptureData',
-                          params: {
-                            projectTitle,
-                            groupId: test.groupId,
-                            groupName,
-                            test: JSON.stringify(test),
-                            scheduleDate: test.scheduleDate.toISOString().split('T')[0],
-                            isCompleted: selectedTab === 'Completed',
-                            selectedTab,
-                            selectedTest,
-                            selectedGroup,
-                          },
-                        })
-                      }
+                      onPress={() => selectedTab === 'Today' && handleNavigation(test)}
+                      activeOpacity={selectedTab === 'Today' ? 0.7 : 1}
                     >
                       <View style={styles.testHeader}>
                         <Text style={styles.testName}>{test.name}</Text>
-                        <Text style={[
-                          styles.statusLabel,
-                          selectedTab === 'Overdue' ? styles.overdueStatus :
-                          test.completion.status === 'Completed' ? styles.completedStatus : styles.pendingStatus
+                        <View style={[
+                          styles.statusBadge,
+                          { backgroundColor: getStatusColor(test.completion.status) }
                         ]}>
-                          {selectedTab === 'Overdue' ? 'Overdue' : test.completion.status}
-                        </Text>
+                          <Text style={styles.statusText}>
+                            {test.completion.totalCount === 0 ? 'No Rats' : test.completion.status}
+                          </Text>
+                        </View>
                       </View>
+
                       <View style={styles.testDetails}>
                         <Text style={styles.detailText}>
-                          Schedule Date: {test.scheduleDate.toISOString().split('T')[0]}
+                          <Text style={styles.detailLabel}>Date: </Text>
+                          {formatDisplayDate(test.scheduleDate)}
                         </Text>
-                        <Text style={styles.detailText}>Frequency: {test.frequencyLabel}</Text>
+
                         <Text style={styles.detailText}>
-                          {test.completion.completedCount}/{test.completion.totalCount} completed
+                          <Text style={styles.detailLabel}>Frequency: </Text>
+                          {test.frequencyLabel}
                         </Text>
+
+                        {test.completion.totalCount > 0 ? (
+                          <Text style={styles.detailText}>
+                            {`${test.completion.completedCount}/${test.completion.totalCount} Completed`}
+                            {test.completion.completedCount > 0 && (
+                              <Text style={{ color: '#4CAF50' }}>
+                                {` (${completionPercentage}%)`}
+                              </Text>
+                            )}
+                          </Text>
+                        ) : (
+                          <Text style={[styles.detailText, { color: '#9E9E9E' }]}>
+                            No rats assigned to this group
+                          </Text>
+                        )}
                       </View>
+
+                      {selectedTab !== 'Today' && (
+                        <Text style={styles.viewOnlyText}>
+                          {`View only - cannot capture data for ${selectedTab.toLowerCase()}`}
+                        </Text>
+                      )}
                     </TouchableOpacity>
-                  ))}
-                </View>
+                  );
+                })}
               </View>
-            ))
-          )}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -290,155 +306,173 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  scrollView: {
-    flex: 1,
-  },
   sectionHeader: {
-    padding: 15,
-    backgroundColor: '#ffffff',
+    padding: 16,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   projectName: {
-    fontSize: 16,
-    color: '#444',
-    marginBottom: 10,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
   },
   filterContainer: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   filterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   dropdownContainer: {
     flex: 1,
-    marginHorizontal: 5,
   },
   dropdownLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#6c757d',
-    marginBottom: 5,
+    color: '#64748b',
+    marginBottom: 4,
   },
   tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    marginTop: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: '#0288d1',
   },
-  inactiveTab: {
-    borderBottomWidth: 0,
-  },
   tabText: {
     fontSize: 16,
+    fontWeight: '500',
   },
   activeTabText: {
     color: '#0288d1',
-    fontWeight: 'bold',
   },
   inactiveTabText: {
-    color: '#6c757d',
+    color: '#64748b',
+  },
+  tabDate: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#64748b',
+  },
+  errorContainer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#0288d1',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
   },
   testsContainer: {
-    padding: 20,
+    padding: 16,
   },
   groupSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   groupName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 10,
+    marginBottom: 12,
+    paddingLeft: 8,
   },
-  groupTestsContainer: {
-    backgroundColor: '#ffffff',
+  testCard: {
+    backgroundColor: 'white',
     borderRadius: 8,
-    padding: 10,
-    elevation: 2,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-  },
-  testCard: {
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0288d1',
-  },
-  overdueCard: {
-    backgroundColor: '#f8d7da',
-  },
-  completedCard: {
-    backgroundColor: '#e8f5e9',
-  },
-  pendingCard: {
-    backgroundColor: '#fff3e0',
+    elevation: 2,
   },
   testHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   testName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
+    flexShrink: 1,
   },
-  statusLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    paddingHorizontal: 8,
+  statusBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 4,
+    marginLeft: 8,
   },
-  overdueStatus: {
-    backgroundColor: '#dc3545',
-    color: '#fff',
-  },
-  completedStatus: {
-    backgroundColor: '#4caf50',
-    color: '#fff',
-  },
-  pendingStatus: {
-    backgroundColor: '#ff9800',
-    color: '#fff',
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   testDetails: {
-    marginLeft: 10,
+    gap: 6,
   },
   detailText: {
     fontSize: 14,
-    color: '#64748b',
-    marginBottom: 4,
+    color: '#475569',
   },
-  emptyContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  detailLabel: {
+    fontWeight: '600',
+    color: '#334155',
   },
-  emptyText: {
-    fontSize: 18,
-    color: '#6c757d',
-    textAlign: 'center',
+  viewOnlyText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#ef4444',
+    fontStyle: 'italic',
   },
 });
 

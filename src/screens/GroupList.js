@@ -5,95 +5,32 @@ import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 
 const GroupList = () => {
-  const { groupsByProject, projectTitles, setSelectedGroup } = useContext(ProjectContext);
+  const { groupsByProject, projectTitles, setSelectedGroup, errors } = useContext(ProjectContext);
   const { ref_num } = useLocalSearchParams();
   const router = useRouter();
   const groups = groupsByProject[ref_num] || [];
   const projectTitle = projectTitles[ref_num] || ref_num;
 
-  // Hardcoded data for now - replace with API call later
-  // const hardcodedGroups = [
-  //   {
-  //     group_id: '1',
-  //     name: 'Group1',
-  //     total_tests: 5,
-  //     completed_tests: 5,
-  //     status: 'Completed'
-  //   },
-  //   {
-  //     group_id: '2',
-  //     name: 'Group2',
-  //     total_tests: 5,
-  //     completed_tests: 2,
-  //     status: 'Pending'
-  //   },
-  //   {
-  //     group_id: '3',
-  //     name: 'Group3',
-  //     total_tests: 5,
-  //     completed_tests: 0,
-  //     status: 'Not Started'
-  //   },
-  //   {
-  //     group_id: '4',
-  //     name: 'Group3',
-  //     total_tests: 5,
-  //     completed_tests: 0,
-  //     status: 'Not Started'
-  //   },
-  //   {
-  //     group_id: '5',
-  //     name: 'Group3',
-  //     total_tests: 5,
-  //     completed_tests: 0,
-  //     status: 'Not Started'
-  //   },
-  // ];
-
   const handleSelectGroup = (item) => {
     setSelectedGroup(item);
     router.push({
-      pathname: 'StudyResult',
+      pathname: 'AnimalDetails',
       params: {
+        projectTitle,
+        groupId: item.group_id,
+        groupName: item.study_type,
         ref_num,
-        selectedGroup: item.study_type,
       },
     });
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Completed':
-        return '#28a745'; // Green
-      case 'Pending':
-        return '#ffc107'; // Yellow/Orange
-      case 'Not Started':
-        return '#dc3545'; // Red
-      default:
-        return '#6c757d'; // Gray
-    }
-  };
-
-  const getStatusBgColor = (status) => {
-    switch (status) {
-      case 'Completed':
-        return '#d4edda'; // Light green
-      case 'Pending':
-        return '#fff3cd'; // Light yellow
-      case 'Not Started':
-        return '#f8d7da'; // Light red
-      default:
-        return '#e9ecef'; // Light gray
-    }
   };
 
   const getSpeciesType = () => {
     if (!groups || groups.length === 0 || !groups[0].species_type) return 'Unknown';
 
     switch (groups[0].species_type) {
-      case "R":
+      case 'R':
         return 'Rat';
-      case "P":
+      case 'P':
         return 'Pig';
       default:
         return 'Unknown';
@@ -106,7 +43,7 @@ const GroupList = () => {
       onPress={() => handleSelectGroup(item)}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.groupName}>{item.study_type || 'unknown'}</Text>
+        <Text style={styles.groupName}>{item.study_type || 'Unknown'}</Text>
         {/* <View style={[
           styles.statusBadge,
           { backgroundColor: getStatusBgColor(item.status) }
@@ -153,7 +90,7 @@ const GroupList = () => {
         <Text style={styles.progressText}>
           {Math.round((item.completed_tests / item.total_tests) * 100)}%
         </Text>
-      </View>  */}
+      </View> */}
     </TouchableOpacity>
   );
 
@@ -168,11 +105,15 @@ const GroupList = () => {
         {groups.length > 0 && (
           <Text style={styles.projectHeader}>Species: {getSpeciesType()}</Text>
         )}
-
-        {/* <Text style={styles.pageTitle}>Select Groups</Text> */}
       </View>
 
-      {groups.length === 0 ? (
+      {errors[ref_num]?.groups ? (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: 'red' }]}>
+            {errors[ref_num].groups}
+          </Text>
+        </View>
+      ) : groups.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No groups are available</Text>
         </View>
@@ -223,7 +164,7 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     color: '#444',
-    flex: 1, 
+    flex: 1,
   },
   pageTitle: {
     fontSize: 20,

@@ -1,118 +1,125 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Dropdown } from 'react-native-element-dropdown';
 import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 import CaptureDataModal from '../components/CaptureDataModal';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const testConfigs = [
-  {
-    test_type: 'Clinical Sign',
-    type: 'dropdown',
-    options: [
-      { label: 'Active', value: 'active' },
-      { label: 'Lethargic', value: 'lethargic' },
-      { label: 'Hunched posture', value: 'Hunched posture' },
-    ],
-    defaultValue: 'active',
-    unit: null,
-  },
-  {
-    test_type: 'Weight',
-    type: 'input',
-    unit: 'g',
-  },
-  {
-    test_sub_type: 'blood',
-    type: 'sub_type',
-    sub_types: ['Haemoglobin', 'WBC', 'RBC', 'Platelets'],
-    units: {
-      Haemoglobin: 'g/dL',
-      WBC: 'thousands/µL',
-      RBC: 'millions/µL',
-      Platelets: 'thousands/µL',
-    },
-    normalRanges: {
-      Haemoglobin: '12-18',
-      WBC: '3-10',
-      RBC: '4-6',
-      Platelets: '150-450',
-    },
-  },
-];
+import { postGLPTestData } from '../services/productServices';
 
 const CaptureData = () => {
-  const { projectTitle, groupId: initialGroupId, groupName: initialGroupName, test: testString, scheduleDate, isCompleted, selectedTab, selectedTest, selectedGroup } = useLocalSearchParams();
-  const isViewOnly = isCompleted === 'true';
+  const { ref_num, groupId: initialGroupId, test: testString, scheduleDate } = useLocalSearchParams();
   const router = useRouter();
-  const { groupsByProject, generateRatIds, saveCapturedData, getCapturedData } = useContext(ProjectContext);
+  const {
+    projectTitles,
+    groupsByProject,
+    getRatIds,
+    getCapturedData,
+    getCompletionStatus,
+    getTestSchedule,
+    CURRENT_DATE
+  } = useContext(ProjectContext);
+
   const test = JSON.parse(testString);
-  const groups = groupsByProject[test.project_code] || [];
-  const [selectedGroupId, setSelectedGroupId] = useState(initialGroupId || groups[0]?.group_id);
-  const group = groups.find(g => g.group_id === selectedGroupId);
-  const rats = group ? generateRatIds(group) : [];
+  const projectTitle = projectTitles[ref_num] || ref_num;
+  const groups = groupsByProject[ref_num] || [];
+  const [selectedGroupId, setSelectedGroupId] = useState(Number(initialGroupId) || groups[0]?.id);
+  const group = groups.find(g => g.id === selectedGroupId);
+  const rats = group ? [...getRatIds(group).male, ...getRatIds(group).female] : [];
+  const useModal = test.is_sub_type_applicable;
+  const subTypes = test.test_sub_type_list || [];
 
-  const testType = test.test_type || null;
-  const testSubType = test.test_sub_type || null;
-  const effectiveTestType = testType === 'Weight' ? 'Weight' : testType;
-
-  const testConfig = testConfigs.find(config => {
-    if (effectiveTestType) return config.test_type === effectiveTestType;
-    if (testSubType === 'blood') return config.test_sub_type === 'blood';
-    return false;
-  }) || {
-    type: 'input',
-    unit: test.test_unit || '',
-  };
-
-  const subTypesForModal = testConfig.type === 'sub_type' ? testConfig.sub_types : [];
-  const unitsForModal = testConfig.type === 'sub_type' ? testConfig.units : {};
-  const normalRangesForModal = testConfig.type === 'sub_type' ? testConfig.normalRanges : {};
-
-  const [dataEntries, setDataEntries] = useState(
-    rats.reduce((acc, ratId) => {
-      const savedData = getCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate);
-      return {
-        ...acc,
-        [ratId]: savedData || (testConfig.type === 'sub_type' ? 
-          subTypesForModal.reduce((subAcc, subType) => ({ ...subAcc, [subType]: '' }), {}) : 
-          testConfig.type === 'dropdown' ? testConfig.defaultValue : ''),
-      };
-    }, {})
-  );
-
-  const [editMode, setEditMode] = useState(
-    rats.reduce((acc, ratId) => ({ ...acc, [ratId]: false }), {})
-  );
-
+  const [dataEntries, setDataEntries] = useState({});
+  const [existingData, setExistingData] = useState({});
+  const [editMode, setEditMode] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedRat, setSelectedRat] = useState(null);
+  const [completionStatus, setCompletionStatus] = useState({
+    status: 'Pending',
+    completedCount: 0,
+    totalCount: 0
+  });
+  const [isValidScheduleDate, setIsValidScheduleDate] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  const formatDateForComparison = (date) => new Date(date).toISOString().split('T')[0];
+  const isViewOnly = formatDateForComparison(scheduleDate) !== formatDateForComparison(CURRENT_DATE);
 
   useEffect(() => {
-    const newRats = group ? generateRatIds(group) : [];
-    setDataEntries(
-      newRats.reduce((acc, ratId) => {
-        const savedData = getCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate);
-        return {
-          ...acc,
-          [ratId]: savedData || (testConfig.type === 'sub_type' ? 
-            subTypesForModal.reduce((subAcc, subType) => ({ ...subAcc, [subType]: '' }), {}) : 
-            testConfig.type === 'dropdown' ? testConfig.defaultValue : ''),
-        };
-      }, {})
-    );
-    setEditMode(newRats.reduce((acc, ratId) => ({ ...acc, [ratId]: false }), {}));
-  }, [selectedGroupId, test.project_code, test.id, scheduleDate]);
+    const fetchData = async () => {
+      if (!group || rats.length === 0) {
+        setLoading(false);
+        return;
+      }
 
-  const handleDataChange = (ratId, field, value) => {
+      setLoading(true);
+      
+      try {
+        const { scheduleDates } = getTestSchedule(test);
+        const scheduleDateStr = formatDateForComparison(scheduleDate);
+        const isValidDate = scheduleDates.some(date => formatDateForComparison(date) === scheduleDateStr);
+        setIsValidScheduleDate(isValidDate);
+
+        if (!isValidDate) {
+          setLoading(false);
+          return;
+        }
+
+        const allData = await getCapturedData(
+          ref_num, 
+          selectedGroupId, 
+          useModal ? subTypes.map(st => st.id) : test.id,
+          scheduleDate
+        );
+
+        const newDataEntries = {};
+        const newExistingData = {};
+        const newEditMode = {};
+
+        rats.forEach(ratId => {
+          const ratData = allData.filter(item => item.rat_no === ratId);
+          
+          if (useModal) {
+            const subTypeData = subTypes.reduce((acc, subType) => {
+              const record = ratData.find(
+                item => item.test_type_id === subType.id && 
+                       item.test_sub_type === subType.test_sub_type
+              );
+              acc[subType.test_sub_type] = record?.t_value || '';
+              return acc;
+            }, {});
+            newDataEntries[ratId] = subTypeData;
+            newExistingData[ratId] = Object.values(subTypeData).some(v => v !== '' && v !== null);
+          } else {
+            const ratRecord = ratData.find(item => item.test_type_id === test.id);
+            const hasExistingData = ratRecord && ratRecord.t_value !== '' && ratRecord.t_value !== null;
+            newDataEntries[ratId] = ratRecord?.t_value || '';
+            newExistingData[ratId] = hasExistingData;
+          }
+          
+          newEditMode[ratId] = false;
+        });
+
+        setDataEntries(newDataEntries);
+        setExistingData(newExistingData);
+        setEditMode(newEditMode);
+
+        const status = await getCompletionStatus(ref_num, selectedGroupId, test.id, scheduleDate);
+        setCompletionStatus(status);
+      } catch (error) {
+        Alert.alert('Error', 'Failed to load data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedGroupId, ref_num, test.id, scheduleDate, rats.length]);
+
+  const handleDataChange = (ratId, value) => {
     setDataEntries(prev => ({
       ...prev,
-      [ratId]: testConfig.type === 'sub_type' ? 
-        { ...prev[ratId], [field]: value } : 
-        value,
+      [ratId]: value
     }));
   };
 
@@ -120,16 +127,80 @@ const CaptureData = () => {
     setEditMode(prev => ({ ...prev, [ratId]: !prev[ratId] }));
   };
 
-  const handleSubmit = () => {
-    rats.forEach(ratId => {
-      const data = dataEntries[ratId];
-      if (data && (testConfig.type === 'sub_type' ? Object.values(data).some(v => v !== '') : data !== '')) {
-        console.log(`Saving data for ${ratId}:`, data);
-        saveCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate, data);
-        setEditMode(prev => ({ ...prev, [ratId]: false }));
+  const handleCancelEdit = async (ratId) => {
+    setEditMode(prev => ({ ...prev, [ratId]: false }));
+    try {
+      const ratData = await getCapturedData(ref_num, selectedGroupId, test.id, scheduleDate, ratId);
+      const ratRecord = ratData.find(item => item.test_type_id === test.id);
+      setDataEntries(prev => ({ ...prev, [ratId]: ratRecord?.t_value || '' }));
+    } catch (error) {
+      Alert.alert('Error', 'Failed to reset data.');
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const formattedDate = new Date(scheduleDate)
+        .toLocaleDateString('en-GB')
+        .split('/')
+        .join('-');
+
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      const currentTime = `${String(formattedHours).padStart(2, '0')}:${minutes} ${ampm}`;
+
+      let submittedCount = 0;
+
+      for (const ratId of rats) {
+        const data = dataEntries[ratId];
+        const hasData = data && (useModal ? Object.values(data).some(v => v !== '') : data !== '');
+
+        if (hasData && (!existingData[ratId] || editMode[ratId])) {
+          const isEdit = existingData[ratId] && editMode[ratId];
+          const testValue = String(data);
+
+          const payload = {
+            test_type_id: test.id,
+            call_mode: isEdit ? "UPDATE_TEST" : "ADD_TEST",
+            group_id: selectedGroupId,
+            test_name: test.name,
+            rat_no: ratId,
+            test_time: currentTime,
+            test_date: formattedDate,
+            test_value: useModal ? JSON.stringify(data) : testValue,
+            remarks: `Data ${isEdit ? 'updated' : 'captured'} via mobile app`
+          };
+
+          await postGLPTestData(payload);
+
+          setEditMode(prev => ({ ...prev, [ratId]: false }));
+          setExistingData(prev => ({ ...prev, [ratId]: true }));
+          submittedCount++;
+        }else{
+          console.log("Skipped")
+        }
       }
-    });
-    router.back();
+
+      if (submittedCount > 0) {
+        Alert.alert('Success', `${submittedCount} record(s) saved successfully`, [
+          {
+            text: 'OK',
+            onPress: async () => {
+              const completion = await getCompletionStatus(ref_num, selectedGroupId, test.id, scheduleDate, true);
+              setCompletionStatus(completion);
+              router.back({ refresh: 'true' });
+            }
+          }
+        ]);
+      } else {
+        Alert.alert('Info', 'No new or modified data to submit');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save data. Please try again.');
+    }
   };
 
   const handleCaptureData = (ratId) => {
@@ -137,16 +208,45 @@ const CaptureData = () => {
     setModalVisible(true);
   };
 
-  const handleModalSubmit = (ratId) => {
-    if (ratId && testConfig.type === 'sub_type') {
-      const data = dataEntries[ratId];
-      if (Object.values(data).some(v => v !== '')) {
-        console.log(`Saving modal data for ${ratId}:`, data);
-        saveCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate, data);
-      }
+  const handleModalSuccess = async () => {
+    setLoading(true);
+    try {
+      const allData = await getCapturedData(
+        ref_num, 
+        selectedGroupId, 
+        subTypes.map(st => st.id),
+        scheduleDate
+      );
+
+      const subTypeData = subTypes.reduce((acc, subType) => {
+        const record = allData.find(
+          item => item.rat_no === selectedRat &&
+                 item.test_type_id === subType.id && 
+                 item.test_sub_type === subType.test_sub_type
+        );
+        acc[subType.test_sub_type] = record?.t_value || '';
+        return acc;
+      }, {});
+
+      setDataEntries(prev => ({
+        ...prev,
+        [selectedRat]: subTypeData
+      }));
+      setExistingData(prev => ({
+        ...prev,
+        [selectedRat]: Object.values(subTypeData).some(v => v !== '' && v !== null)
+      }));
+      setEditMode(prev => ({ ...prev, [selectedRat]: false }));
+
+      const completion = await getCompletionStatus(ref_num, selectedGroupId, test.id, scheduleDate, true);
+      setCompletionStatus(completion);
+    } catch (err) {
+      Alert.alert('Error', 'Failed to refresh data.');
+    } finally {
+      setLoading(false);
+      setModalVisible(false);
+      setSelectedRat(null);
     }
-    setModalVisible(false);
-    setSelectedRat(null);
   };
 
   const handleModalClose = () => {
@@ -155,11 +255,17 @@ const CaptureData = () => {
   };
 
   const getSubTypeProgress = (ratId) => {
-    if (testConfig.type !== 'sub_type') return null;
-    const data = dataEntries[ratId];
-    const completed = Object.values(data).filter(v => v !== '').length;
-    const total = subTypesForModal.length;
-    return `${completed}/${total} completed`;
+    if (!useModal) return null;
+    const data = dataEntries[ratId] || {};
+    const completed = Object.values(data).filter(v => v !== '' && v !== null).length;
+    return `${completed}/${subTypes.length} completed`;
+  };
+
+  const isFullyCompleted = (ratId) => {
+    if (!useModal) return existingData[ratId];
+    const data = dataEntries[ratId] || {};
+    const completed = Object.values(data).filter(v => v !== '' && v !== null).length;
+    return completed === subTypes.length;
   };
 
   if (!group || rats.length === 0) {
@@ -167,13 +273,29 @@ const CaptureData = () => {
       <View style={styles.container}>
         <HeaderComponent headerTitle="Capture Data" onBackPress={() => router.back()} />
         <View style={styles.headerSection}>
-          <Text style={styles.headerText}>Project: {projectTitle}</Text>
-          <Text style={styles.headerText}>Group: {initialGroupName || 'Unknown'}</Text>
-          <Text style={styles.headerText}>Test: {test.name}</Text>
-          <Text style={styles.headerText}>Schedule Date: {scheduleDate}</Text>
+          <Text style={styles.headerText}>{`Project: ${projectTitle}`}</Text>
+          <Text style={styles.headerText}>{`Test: ${test.name}`}</Text>
+          <Text style={styles.headerText}>{`Schedule Date: ${new Date(scheduleDate).toLocaleDateString()}`}</Text>
         </View>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Group or rats not found.</Text>
+          <Text style={styles.errorText}>No rats assigned to this group.</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!isValidScheduleDate) {
+    return (
+      <View style={styles.container}>
+        <HeaderComponent headerTitle="Capture Data" onBackPress={() => router.back()} />
+        <View style={styles.headerSection}>
+          <Text style={styles.headerText}>{`Project: ${projectTitle}`}</Text>
+          <Text style={styles.headerText}>{`Test: ${test.name}`}</Text>
+          <Text style={styles.headerText}>{`Group: ${group.study_type}`}</Text>
+          <Text style={styles.headerText}>{`Schedule Date: ${new Date(scheduleDate).toLocaleDateString()}`}</Text>
+        </View>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Invalid schedule date for this test frequency.</Text>
         </View>
       </View>
     );
@@ -182,134 +304,136 @@ const CaptureData = () => {
   return (
     <View style={styles.container}>
       <HeaderComponent headerTitle="Capture Data" onBackPress={() => router.back()} />
-      <View style={styles.headerSection}>
-        <Text style={styles.headerText}>Project: {projectTitle}</Text>
-        <Text style={styles.headerText}>Test: {test.name}</Text>
-        <Text style={styles.headerText}>Species: {group.species_type}</Text>
-        <Text style={styles.headerText}>Schedule Date: {scheduleDate}</Text>
-      </View>
-      <ScrollView style={styles.scrollView}>
-        {testConfig.type !== 'sub_type' ? (
-          <>
-            {!isViewOnly && testConfig.type === 'dropdown' && (
-              <TouchableOpacity
-                style={styles.markAllButton}
-                onPress={() => {
-                  const newEntries = { ...dataEntries };
-                  rats.forEach(ratId => {
-                    if (!getCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate)) {
-                      newEntries[ratId] = testConfig.defaultValue;
-                    }
-                  });
-                  setDataEntries(newEntries);
-                }}
-              >
-                <Text style={styles.markAllButtonText}>Mark All as {testConfig.defaultValue}</Text>
-              </TouchableOpacity>
-            )}
-            <View style={styles.ratsContainer}>
-              {rats.map(ratId => {
-                const isDisabled = isViewOnly || (!!getCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate) && !editMode[ratId]);
-                return (
-                  <View key={ratId} style={styles.ratRow}>
-                    <Text style={styles.ratName}>{ratId}</Text>
-                    {testConfig.type === 'dropdown' ? (
-                      <View style={styles.inputContainer}>
-                        <Dropdown
-                          style={[styles.dropdown, isDisabled && styles.disabledInput]}
-                          containerStyle={styles.dropdownContainer}
-                          itemTextStyle={styles.dropdownItemText}
-                          placeholderStyle={styles.dropdownPlaceholder}
-                          selectedTextStyle={styles.dropdownSelectedText}
-                          data={testConfig.options}
-                          labelField="label"
-                          valueField="value"
-                          value={dataEntries[ratId] || ''}
-                          onChange={item => handleDataChange(ratId, effectiveTestType, item.value)}
-                          placeholder="Select..."
-                          maxHeight={150}
-                          disable={isDisabled}
-                        />
-                        {!isViewOnly && isDisabled && (
-                          <TouchableOpacity style={styles.editButton} onPress={() => toggleEditMode(ratId)}>
-                            <Text style={styles.editButtonText}>Edit</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ) : (
-                      <View style={styles.inputContainer}>
-                        <TextInput
-                          style={[styles.input, isDisabled && styles.disabledInput]}
-                          value={dataEntries[ratId]}
-                          onChangeText={value => handleDataChange(ratId, effectiveTestType, value)}
-                          placeholder={`Enter Value`}
-                          keyboardType="numeric"
-                          editable={!isDisabled}
-                        />
-                        <Text style={styles.unit}>{testConfig.unit}</Text>
-                        {!isViewOnly && isDisabled && (
-                          <TouchableOpacity style={styles.editButton} onPress={() => toggleEditMode(ratId)}>
-                            <Text style={styles.editButtonText}>Edit</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
+      {loading && (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" color="#0288d1" />
+          <Text style={styles.loaderText}>Loading data...</Text>
+        </View>
+      )}
+      {!loading && (
+        <>
+          <View style={styles.headerSection}>
+            <Text style={styles.headerText}>{`Project: ${projectTitle}`}</Text>
+            <Text style={styles.headerText}>{`Test: ${test.name}`}</Text>
+            <Text style={styles.headerText}>{`Group: ${group.study_type}`}</Text>
+            <Text style={styles.headerText}>{`Schedule Date: ${new Date(scheduleDate).toLocaleDateString()}`}</Text>
+            <View style={styles.completionStatus}>
+              <Text style={styles.completionText}>
+                Completion: {completionStatus.completedCount}/{completionStatus.totalCount} (
+                {completionStatus.totalCount > 0
+                  ? Math.round((completionStatus.completedCount / completionStatus.totalCount) * 100)
+                  : 0}%)
+              </Text>
+              <View style={[
+                styles.statusBadge,
+                {
+                  backgroundColor:
+                    completionStatus.status === 'Completed' ? '#4CAF50' :
+                      completionStatus.status === 'Pending' ? '#FF9800' : '#9E9E9E'
+                }
+              ]}>
+                <Text style={styles.statusText}>{completionStatus.status}</Text>
+              </View>
             </View>
-            {!isViewOnly && (
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <View style={styles.ratsContainer}>
-            {rats.map(ratId => {
-              const isDisabled = isViewOnly || (!!getCapturedData(test.project_code, selectedGroupId, test.id, ratId, scheduleDate) && !editMode[ratId]);
-              const progress = getSubTypeProgress(ratId);
-              return (
-                <View key={ratId} style={styles.ratRow}>
-                  <View style={styles.ratInfo}>
-                    <Text style={styles.ratName}>{ratId}</Text>
-                    {progress && <Text style={styles.progressText}>{progress}</Text>}
-                  </View>
-                  <View style={styles.buttonContainer}>
-                    {!isViewOnly && (
-                      <TouchableOpacity
-                        style={[styles.captureButton, isDisabled && styles.disabledButton]}
-                        onPress={() => handleCaptureData(ratId)}
-                        disabled={isDisabled}
-                      >
-                        <Text style={styles.captureButtonText}>Capture Data</Text>
-                      </TouchableOpacity>
-                    )}
-                    {!isViewOnly && isDisabled && (
-                      <TouchableOpacity style={styles.editButton} onPress={() => toggleEditMode(ratId)}>
-                        <Text style={styles.editButtonText}>Edit</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-              );
-            })}
           </View>
-        )}
-      </ScrollView>
-      {testConfig.type === 'sub_type' && selectedRat && (
-        <CaptureDataModal
-          visible={modalVisible}
-          ratId={selectedRat}
-          subTypes={subTypesForModal}
-          units={unitsForModal}
-          normalRanges={normalRangesForModal}
-          data={dataEntries[selectedRat] || {}}
-          onDataChange={(subType, value) => handleDataChange(selectedRat, subType, value)}
-          onSubmit={() => handleModalSubmit(selectedRat)}
-          onClose={handleModalClose}
-          isDisabled={isViewOnly || (getCapturedData(test.project_code, selectedGroupId, test.id, selectedRat, scheduleDate) && !editMode[selectedRat])}
-        />
+          <ScrollView style={styles.scrollView}>
+            {!useModal ? (
+              <>
+                <View style={styles.ratsContainer}>
+                  {rats.map(ratId => {
+                    const isDisabled = isViewOnly || (existingData[ratId] && !editMode[ratId]);
+
+                    return (
+                      <View key={ratId} style={styles.ratRow}>
+                        <Text style={styles.ratName}>{ratId}</Text>
+                        <View style={styles.inputContainer}>
+                          <TextInput
+                            style={[styles.input, isDisabled && styles.disabledInput]}
+                            value={dataEntries[ratId] || ''}
+                            onChangeText={value => handleDataChange(ratId, value)}
+                            placeholder={`Enter value`}
+                            keyboardType={test.test_unit === 'g' ? 'numeric' : 'default'}
+                            editable={!isDisabled}
+                          />
+                          {test.test_unit && <Text style={styles.unit}>{test.test_unit}</Text>}
+                        </View>
+                        {!isViewOnly && existingData[ratId] && !editMode[ratId] && (
+                          <TouchableOpacity
+                            style={styles.editButton}
+                            onPress={() => toggleEditMode(ratId)}
+                          >
+                            <Text style={styles.buttonText}>Edit</Text>
+                          </TouchableOpacity>
+                        )}
+                        {!isViewOnly && editMode[ratId] && (
+                          <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={() => handleCancelEdit(ratId)}
+                          >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+                {!isViewOnly && (
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                  >
+                    <Text style={styles.submitButtonText}>Submit</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            ) : (
+              <View style={styles.ratsContainer}>
+                {rats.map(ratId => {
+                  const isFullyCompletedRat = isFullyCompleted(ratId);
+                  const showButton = !isViewOnly || (isViewOnly && isFullyCompletedRat);
+                  const buttonText = isFullyCompletedRat ? 'View' : 'Capture Data';
+                  const isDisabled = isViewOnly && !isFullyCompletedRat;
+                  const progress = getSubTypeProgress(ratId);
+
+                  return (
+                    <View key={ratId} style={styles.ratRow}>
+                      <View style={styles.ratInfo}>
+                        <Text style={styles.ratName}>{ratId}</Text>
+                        {progress && <Text style={styles.progressText}>{progress}</Text>}
+                      </View>
+                      {showButton && (
+                        <View style={styles.buttonContainer}>
+                          <TouchableOpacity
+                            style={[styles.captureButton, isDisabled && styles.disabledButton]}
+                            onPress={() => handleCaptureData(ratId)}
+                            disabled={isDisabled}
+                          >
+                            <Text style={styles.captureButtonText}>{buttonText}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </ScrollView>
+          {useModal && selectedRat && (
+            <CaptureDataModal
+              visible={modalVisible}
+              ratId={selectedRat}
+              subTypes={subTypes}
+              onClose={handleModalClose}
+              isDisabled={isViewOnly}
+              groupId={selectedGroupId}
+              testId={test.id}
+              testName={test.name}
+              scheduleDate={scheduleDate}
+              onSuccess={handleModalSuccess}
+              refNum={ref_num}
+            />
+          )}
+        </>
       )}
     </View>
   );
@@ -333,6 +457,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6c757d',
     marginBottom: 5,
+  },
+  completionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingVertical: 8,
+  },
+  completionText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  statusBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   ratsContainer: {
     padding: 15,
@@ -378,6 +523,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     backgroundColor: '#fff',
+    textAlign: 'right'
   },
   disabledInput: {
     opacity: 0.5,
@@ -393,6 +539,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 5,
   },
+  editButton: {
+    backgroundColor: '#ff9800',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
   disabledButton: {
     backgroundColor: '#ccc',
   },
@@ -401,21 +561,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  markAllButton: {
-    backgroundColor: '#4caf50',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 15,
-    marginBottom: 10,
-  },
-  markAllButtonText: {
+  buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#0288d1',
+    backgroundColor: '#22c55e',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -424,18 +576,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  editButton: {
-    backgroundColor: '#ff9800',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    marginLeft: 5,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 14,
     fontWeight: '600',
   },
   errorContainer: {
@@ -460,26 +600,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 100,
   },
-  dropdownContainer: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 5,
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  dropdownItemText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  dropdownPlaceholder: {
-    fontSize: 14,
-    color: '#999',
-    numberOfLines: 1,
-    ellipsizeMode: 'tail',
-  },
-  dropdownSelectedText: {
-    fontSize: 14,
-    color: '#333',
-    numberOfLines: 1,
-    ellipsizeMode: 'tail',
+  loaderText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#64748b',
   },
 });
 

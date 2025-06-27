@@ -5,7 +5,7 @@ import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 
 const TestList = () => {
-  const { testsByProject, projectTitles } = useContext(ProjectContext);
+  const { testsByProject, projectTitles, errors } = useContext(ProjectContext);
   const { ref_num } = useLocalSearchParams();
   const router = useRouter();
   const tests = testsByProject[ref_num] || [];
@@ -42,7 +42,11 @@ const TestList = () => {
       >
         <View style={styles.testsContainer}>
           <Text style={styles.sectionTitle}>Tests Overview</Text>
-          {tests.length === 0 ? (
+          {errors[ref_num]?.tests ? (
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, {color: 'red'}]}>{errors[ref_num].tests}</Text>
+            </View>
+          ) : tests.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No tests are available</Text>
             </View>

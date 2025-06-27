@@ -156,3 +156,19 @@ export function getGLPTestList(ref_num) {
   };
   return authAxios(getGLPTest, data)
 }
+
+export function getGLPTestDataList(ref_num) {
+  let data = {
+    'project_code': ref_num,
+  };
+  return authAxios(getGLPTestData, data)
+}
+
+export function postGLPTestData(payload) {
+  let data = {};
+  if (payload) {
+    data['test_data'] = payload;
+  }
+  console.log('Data to be sent:', JSON.stringify(data, null, 2));
+  return authAxiosPost(processGLPTestData, data)
+}
