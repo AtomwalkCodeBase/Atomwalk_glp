@@ -225,7 +225,7 @@ const StudyResult = () => {
           <View style={styles.testsContainer}>
             {Object.entries(groupedTests).map(([groupName, groupTests]) => (
               <View key={`group-${groupName}`} style={styles.groupSection}>
-                <Text style={styles.groupName}>  {`${groupName} [${groupTests[0]?.groupIdUser || 'ID'}]`}</Text>
+                <Text style={styles.groupName}>  {`${groupTests[0]?.groupIdUser || 'ID'} [${groupName}]`}</Text>
 
                 {groupTests.map(test => {
                   const completionPercentage = test.completion.totalCount > 0
