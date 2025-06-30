@@ -72,7 +72,7 @@ const SubHeader = styled.Text`
 
 const NewHomeScreen = () => {
   const router = useRouter();
-  const { projects, projectTitles, loading } = useContext(ProjectContext);
+  const { projects, projectTitles, loading, fetchAllData } = useContext(ProjectContext);
   const [company, setCompany] = useState({});
   const [profile, setProfile] = useState([]);
 
@@ -92,6 +92,8 @@ const NewHomeScreen = () => {
       .catch((error) => {
         console.log('Error fetching company info:', error);
       });
+    
+    fetchAllData()
   }, []);
 
   const handleSelectProject = (ref_num) => {

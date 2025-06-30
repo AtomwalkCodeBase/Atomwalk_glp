@@ -18,7 +18,7 @@ const ProjectProvider = ({ children }) => {
 
   const START_DATE = new Date('2025-05-22');
   const END_DATE = new Date('2025-07-11');
-  const CURRENT_DATE = new Date('2025-06-27');
+  const CURRENT_DATE = new Date('2025-05-27');
 
   const formatDate = (date) => date.toISOString().split('T')[0];
 
@@ -44,9 +44,23 @@ const ProjectProvider = ({ children }) => {
     };
   }, []);
 
+  const getAnimalName = useCallback((speciesType) => {
+    switch (speciesType?.toUpperCase()) {
+      case 'R': return 'Rat';
+      case 'P': return 'Pig';
+      case 'D': return 'Dog';
+      default: return 'Other';
+    }
+  }, []);
+
+  const addDays = (date, days) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
   const getTestSchedule = (test, currentDate = CURRENT_DATE) => {
-    const testStartDate = new Date(START_DATE);
-    testStartDate.setDate(START_DATE.getDate() + (test.no_of_days || 0));
+    const testStartDate = addDays(START_DATE, test.no_of_days || 0);
 
     let scheduleDates = [];
     const frequencyLabel = test.test_frequency_display || 'Unknown';
@@ -59,12 +73,12 @@ const ProjectProvider = ({ children }) => {
     } else {
       switch (test.test_frequency) {
         case 'D':
-          for (let date = new Date(testStartDate); date <= END_DATE; date.setDate(date.getDate() + 1)) {
+          for (let date = new Date(testStartDate); date <= END_DATE; date = addDays(date, 1)) {
             scheduleDates.push(new Date(date));
           }
           break;
         case 'W':
-          for (let date = new Date(testStartDate); date <= END_DATE; date.setDate(date.getDate() + 7)) {
+          for (let date = new Date(testStartDate); date <= END_DATE; date = addDays(date, 7)) {
             scheduleDates.push(new Date(date));
           }
           break;
@@ -74,8 +88,7 @@ const ProjectProvider = ({ children }) => {
           }
           break;
         case 'B':
-          const beforeDate = new Date(testStartDate);
-          beforeDate.setDate(testStartDate.getDate() - 1);
+          const beforeDate = addDays(testStartDate, -1);
           if (beforeDate >= START_DATE && beforeDate <= END_DATE) {
             scheduleDates.push(new Date(beforeDate));
           }
@@ -85,12 +98,13 @@ const ProjectProvider = ({ children }) => {
       }
     }
 
+    const formatDate = (date) => date.toISOString().split('T')[0];
+
     const todayStr = formatDate(currentDate);
-    const yesterday = new Date(currentDate);
-    yesterday.setDate(currentDate.getDate() - 1);
+    const yesterday = addDays(currentDate, -1);
+    const tomorrow = addDays(currentDate, 1);
+
     const yesterdayStr = formatDate(yesterday);
-    const tomorrow = new Date(currentDate);
-    tomorrow.setDate(currentDate.getDate() + 1);
     const tomorrowStr = formatDate(tomorrow);
 
     let status = 'None';
@@ -133,6 +147,7 @@ const ProjectProvider = ({ children }) => {
             frequencyLabel,
             scheduleDate: new Date(dateStr),
             testStartDate,
+            species: group.species
           });
         });
       }
@@ -163,7 +178,7 @@ const ProjectProvider = ({ children }) => {
           data = data.filter(item => item.test_date === formattedDate);
         }
         if (ratId) data = data.filter(item => item.rat_no === ratId);
-        
+
         return data;
       }
       return [];
@@ -193,19 +208,26 @@ const ProjectProvider = ({ children }) => {
     }
 
     const group = (groupsByProject[refNum] || []).find(g => g.id === groupId);
-    if (!group) return { status: 'Pending', completedCount: 0, totalCount: 0 };
+    if (!group) return { status: 'Not Assigned', completedCount: 0, totalCount: 0, animalName: 'Unknown' };
 
     const test = (testsByProject[refNum] || []).find(t => t.id === testId);
     const isSubTypeApplicable = test?.is_sub_type_applicable;
     const subTypes = test?.test_sub_type_list || [];
 
-    const totalRats = (group.no_of_male || 0) + (group.no_of_female || 0);
+    const maleRats = Array.isArray(group.rat_list_m) ? group.rat_list_m : [];
+    const femaleRats = Array.isArray(group.rat_list_f) ? group.rat_list_f : [];
+    const totalRats = maleRats.length + femaleRats.length;
     const ratIds = [...getRatIds(group).male, ...getRatIds(group).female];
+    const animalName = getAnimalName(group.species_type);
+
+    if (totalRats === 0) {
+      return { status: 'Not Assigned', completedCount: 0, totalCount: 0, animalName };
+    }
 
     const data = await getCapturedData(
-      refNum, 
-      groupId, 
-      isSubTypeApplicable ? subTypes.map(st => st.id) : testId, 
+      refNum,
+      groupId,
+      isSubTypeApplicable ? subTypes.map(st => st.id) : testId,
       scheduleDate
     );
 
@@ -215,19 +237,19 @@ const ProjectProvider = ({ children }) => {
       const ratData = data.filter(item => item.rat_no === ratId);
 
       if (isSubTypeApplicable) {
-        const allSubTypesFilled = subTypes.every(subType => 
-          ratData.some(item => 
-            item.test_type_id === subType.id && 
+        const allSubTypesFilled = subTypes.every(subType =>
+          ratData.some(item =>
+            item.test_type_id === subType.id &&
             item.test_sub_type === subType.test_sub_type &&
-            item.t_value !== '' && 
+            item.t_value !== '' &&
             item.t_value !== null
           )
         );
         if (allSubTypesFilled) completedCount++;
       } else {
-        const hasData = ratData.some(item => 
-          item.test_type_id === testId && 
-          item.t_value !== '' && 
+        const hasData = ratData.some(item =>
+          item.test_type_id === testId &&
+          item.t_value !== '' &&
           item.t_value !== null
         );
         if (hasData) completedCount++;
@@ -237,128 +259,149 @@ const ProjectProvider = ({ children }) => {
     const completion = {
       status: totalRats > 0
         ? (completedCount >= totalRats ? 'Completed' : 'Pending')
-        : 'Not Started',
+        : 'Not Assigned',
       completedCount,
       totalCount: totalRats,
+      animalName
     };
 
     updateCompletionCache(refNum, groupId, testId, scheduleDate, completion);
     return completion;
-  }, [groupsByProject, testsByProject, getRatIds, getCapturedData, completionCache, updateCompletionCache]);
+  }, [groupsByProject, testsByProject, getRatIds, getCapturedData, completionCache, updateCompletionCache, getAnimalName]);
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true);
-      setErrors({});
-      
+  const getAnimalCounts = useCallback(async (refNum, date) => {
+    const tests = getTestsForDate(refNum, date);
+    let totalAnimals = 0;
+    let completedAnimals = 0;
+
+    for (const test of tests) {
+      const completion = await getCompletionStatus(
+        refNum,
+        test.groupId,
+        test.id,
+        test.scheduleDate.toISOString().split('T')[0],
+        false
+      );
+      totalAnimals += completion.totalCount;
+      completedAnimals += completion.completedCount;
+    }
+
+    return {
+      totalAnimals,
+      completedAnimals,
+      pendingAnimals: totalAnimals - completedAnimals
+    };
+  }, [getTestsForDate, getCompletionStatus]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    setErrors({});
+
+    try {
+      let allActivities = [];
       try {
-        let allActivities = [];
+        const projectRes = await getActivityList();
+        allActivities = projectRes?.data?.a_list || [];
+      } catch (err) {
+        setErrors(prev => ({ ...prev, activities: 'Failed to load projects' }));
+      }
+
+      const activitiesGrouped = allActivities.reduce((acc, activity) => {
+        const refNum = activity.ref_num;
+        if (!acc[refNum]) acc[refNum] = [];
+        acc[refNum].push(activity);
+        return acc;
+      }, {});
+      setActivitiesByProject(activitiesGrouped);
+
+      const uniqueActivities = Array.from(
+        new Map(allActivities.map(item => [item.ref_num, item])).values()
+      );
+
+      const sortedActivities = uniqueActivities.sort((a, b) => {
+        const getStatusPriority = (status) => {
+          switch (status?.toLowerCase()) {
+            case 'in progress': return 1;
+            case 'completed': return 2;
+            default: return 3;
+          }
+        };
+        return getStatusPriority(a.status) - getStatusPriority(b.status);
+      });
+
+      setProjects(sortedActivities);
+
+      const groupsData = {};
+      const groupIdMapping = {};
+      const testsData = {};
+      const tasks = {};
+      const titles = {};
+
+      await Promise.all(sortedActivities.map(async (project) => {
+        const refNum = project.ref_num;
         try {
-          const projectRes = await getActivityList();
-          allActivities = projectRes?.data?.a_list || [];
-        } catch (err) {
-          setErrors(prev => ({ ...prev, activities: 'Failed to load projects' }));
-        }
+          const [groupRes, testRes] = await Promise.all([
+            getGLPGroupList(refNum).catch(err => ({ status: 500, data: [] })),
+            getGLPTestList(refNum).catch(err => ({ status: 500, data: [] })),
+          ]);
 
-        const activitiesGrouped = allActivities.reduce((acc, activity) => {
-          const refNum = activity.ref_num;
-          if (!acc[refNum]) acc[refNum] = [];
-          acc[refNum].push(activity);
-          return acc;
-        }, {});
-        setActivitiesByProject(activitiesGrouped);
-
-        const uniqueActivities = Array.from(
-          new Map(allActivities.map(item => [item.ref_num, item])).values()
-        );
-
-        const sortedActivities = uniqueActivities.sort((a, b) => {
-          const getStatusPriority = (status) => {
-            switch (status?.toLowerCase()) {
-              case 'in progress': return 1;
-              case 'completed': return 2;
-              default: return 3;
-            }
-          };
-          return getStatusPriority(a.status) - getStatusPriority(b.status);
-        });
-
-        setProjects(sortedActivities);
-
-        const groupsData = {};
-        const groupIdMapping = {};
-        const testsData = {};
-        const tasks = {};
-        const titles = {};
-
-        await Promise.all(sortedActivities.map(async (project) => {
-          const refNum = project.ref_num;
-          try {
-            const [groupRes, testRes] = await Promise.all([
-              getGLPGroupList(refNum).catch(err => ({ status: 500, data: [] })),
-              getGLPTestList(refNum).catch(err => ({ status: 500, data: [] })),
-            ]);
-
-            if (groupRes.status === 200) {
-              groupsData[refNum] = groupRes.data.map(group => ({
-                ...group,
-                id: group.id,
-                group_id: group.group_id,
-              })) || [];
-              groupRes.data.forEach(group => {
-                groupIdMapping[group.group_id] = group.id;
-              });
-              titles[refNum] = groupRes.data[0]?.project_title || refNum;
-            } else {
-              setErrors(prev => ({
-                ...prev,
-                [refNum]: { ...prev[refNum], groups: `Failed to load groups for project ${refNum}` },
-              }));
-            }
-
-            if (testRes.status === 200) {
-              testsData[refNum] = testRes.data || [];
-              for (const group of groupsData[refNum] || []) {
-                for (const test of testRes.data || []) {
-                  if (isTestScheduledToday(test)) {
-                    if (!tasks[refNum]) tasks[refNum] = [];
-                    tasks[refNum].push({
-                      projectCode: test.project_code,
-                      groupName: group.study_type,
-                      group,
-                      test,
-                    });
-                  }
-                }
-              }
-            } else {
-              setErrors(prev => ({
-                ...prev,
-                [refNum]: { ...prev[refNum], tests: `Failed to load tests for project ${refNum}` },
-              }));
-            }
-          } catch (err) {
+          if (groupRes.status === 200) {
+            groupsData[refNum] = groupRes.data.map(group => ({
+              ...group,
+              id: group.id,
+              group_id: group.group_id,
+            })) || [];
+            groupRes.data.forEach(group => {
+              groupIdMapping[group.group_id] = group.id;
+            });
+            titles[refNum] = groupRes.data[0]?.project_title || refNum;
+          } else {
             setErrors(prev => ({
               ...prev,
-              [refNum]: { ...prev[refNum], general: `Error processing project ${refNum}` },
+              [refNum]: { ...prev[refNum], groups: `Failed to load groups for project ${refNum}` },
             }));
           }
-        }));
 
-        setGroupsByProject(groupsData);
-        setGroupIdMap(groupIdMapping);
-        setTestsByProject(testsData);
-        setTodaysTasks(Object.values(tasks).flat());
-        setProjectTitles(titles);
-      } catch (err) {
-        setErrors(prev => ({ ...prev, general: 'Error fetching data' }));
-      } finally {
-        setLoading(false);
-      }
-    };
+          if (testRes.status === 200) {
+            testsData[refNum] = testRes.data || [];
+            for (const group of groupsData[refNum] || []) {
+              for (const test of testRes.data || []) {
+                if (isTestScheduledToday(test)) {
+                  if (!tasks[refNum]) tasks[refNum] = [];
+                  tasks[refNum].push({
+                    projectCode: test.project_code,
+                    groupName: group.study_type,
+                    group,
+                    test,
+                  });
+                }
+              }
+            }
+          } else {
+            setErrors(prev => ({
+              ...prev,
+              [refNum]: { ...prev[refNum], tests: `Failed to load tests for project ${refNum}` },
+            }));
+          }
+        } catch (err) {
+          setErrors(prev => ({
+            ...prev,
+            [refNum]: { ...prev[refNum], general: `Error processing project ${refNum}` },
+          }));
+        }
+      }));
 
-    fetchAllData();
-  }, []);
+      setGroupsByProject(groupsData);
+      setGroupIdMap(groupIdMapping);
+      setTestsByProject(testsData);
+      setTodaysTasks(Object.values(tasks).flat());
+      setProjectTitles(titles);
+    } catch (err) {
+      setErrors(prev => ({ ...prev, general: 'Error fetching data' }));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const contextValue = {
     projects,
@@ -378,10 +421,12 @@ const ProjectProvider = ({ children }) => {
     getTestsForDate,
     getCapturedData,
     getCompletionStatus,
+    getAnimalCounts,
     updateCompletionCache,
     START_DATE,
     END_DATE,
     CURRENT_DATE,
+    fetchAllData
   };
 
   return (

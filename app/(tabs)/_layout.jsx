@@ -26,11 +26,11 @@ const _layout = () => {
         tabBarIcon: ({ color }) => <Entypo name="lab-flask" size={24} color={color} />
       }}></Tabs.Screen>
 
-      <Tabs.Screen name='booking' options={{
+      {/* <Tabs.Screen name='booking' options={{
         title: 'My Bookings',
         headerShown: false,
         tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />
-      }}></Tabs.Screen>
+      }}></Tabs.Screen> */}
 
       <Tabs.Screen name='profile' options={{
         title: 'Profile',
