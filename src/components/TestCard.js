@@ -1,13 +1,32 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const TestCard = ({ test, selectedTab, onPress, formatDisplayDate }) => {
+const TestCard = ({ test, onPress, formatDisplayDate }) => {
+  // Color scheme matching ClaimCardContainer
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed': return '#4CAF50';
-      case 'Pending': return '#FF9800';
-      case 'Not Assigned': return '#ef4444';
-      default: return '#9E9E9E';
+      case 'Completed': return '#4CAF50'; // Approved - Green
+      case 'Pending': return '#FF9800';  // Back to claimant - Orange
+      case 'Not Assigned': return '#F44336'; // Rejected - Red
+      default: return '#9E9E9E'; // Default - Gray
+    }
+  };
+
+  const getStatusBackgroundColor = (status) => {
+    switch (status) {
+      case 'Completed': return '#E8F5E9'; // Approved - Light Green
+      case 'Pending': return '#FFF3E0';   // Back to claimant - Light Orange
+      case 'Not Assigned': return '#FFEBEE'; // Rejected - Light Red
+      default: return '#F5F5F5'; // Default - Light Gray
+    }
+  };
+
+  const getStatusTextColor = (status) => {
+    switch (status) {
+      case 'Completed': return '#2E7D32'; // Approved - Dark Green
+      case 'Pending': return '#EF6C00';   // Back to claimant - Dark Orange
+      case 'Not Assigned': return '#C62828'; // Rejected - Dark Red
+      default: return '#424242'; // Default - Dark Gray
     }
   };
 
@@ -21,19 +40,25 @@ const TestCard = ({ test, selectedTab, onPress, formatDisplayDate }) => {
         styles.testCard,
         {
           borderLeftColor: getStatusColor(test.completion.status),
-          opacity: selectedTab === 'Today' ? 1 : 0.7
         }
       ]}
-      onPress={() => selectedTab === 'Today' && test.completion.status !== 'Not Assigned' && onPress(test)}
-      activeOpacity={selectedTab === 'Today' && test.completion.status !== 'Not Assigned' ? 0.7 : 1}
+      onPress={() => test.completion.status !== 'Not Assigned' && onPress(test)}
+      activeOpacity={test.completion.status !== 'Not Assigned' ? 0.7 : 1}
     >
       <View style={styles.testHeader}>
         <Text style={styles.testName}>{test.name}</Text>
         <View style={[
           styles.statusBadge,
-          { backgroundColor: getStatusColor(test.completion.status) }
+          { 
+            backgroundColor: getStatusBackgroundColor(test.completion.status),
+            borderColor: getStatusColor(test.completion.status),
+            borderWidth: 1
+          }
         ]}>
-          <Text style={styles.statusText}>
+          <Text style={[
+            styles.statusText,
+            { color: getStatusTextColor(test.completion.status) }
+          ]}>
             {test.completion.status}
           </Text>
         </View>
@@ -54,21 +79,21 @@ const TestCard = ({ test, selectedTab, onPress, formatDisplayDate }) => {
           <Text style={styles.detailText}>
             {`${test.completion.completedCount}/${test.completion.totalCount} Completed`}
             {test.completion.completedCount > 0 && (
-              <Text style={{ color: '#4CAF50' }}>
+              <Text style={{ color: '#2E7D32' }}> {/* Dark Green */}
                 {` (${completionPercentage}%)`}
               </Text>
             )}
           </Text>
         ) : (
-          <Text style={[styles.detailText, { color: '#ef4444' }]}>
+          <Text style={[styles.detailText, { color: '#C62828' }]}> {/* Dark Red */}
             {`No ${test.completion.animalName}s assigned to this group`}
           </Text>
         )}
       </View>
 
-      {selectedTab !== 'Today' && (
+      {test.completion.status === 'Not Assigned' && (
         <Text style={styles.viewOnlyText}>
-          {`View only - cannot capture data for ${selectedTab.toLowerCase()}`}
+          Cannot capture data - no animals assigned
         </Text>
       )}
     </TouchableOpacity>
@@ -107,7 +132,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusText: {
-    color: 'white',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -125,7 +149,7 @@ const styles = StyleSheet.create({
   viewOnlyText: {
     marginTop: 8,
     fontSize: 12,
-    color: '#ef4444',
+    color: '#C62828',
     fontStyle: 'italic',
   },
 });

@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import CaptureDataModal from '../components/CaptureDataModal';
+import CaptureSubtypeDataModal from '../components/CaptureSubtypeDataModal';
 import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
 
@@ -125,7 +125,7 @@ const TestDetail = () => {
       </ScrollView>
 
       {/* Modal */}
-      <CaptureDataModal
+      <CaptureSubtypeDataModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         selectedAnimal={selectedAnimal}

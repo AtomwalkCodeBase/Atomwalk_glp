@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
@@ -19,16 +19,16 @@ const TestList = () => {
     N: 'As per the Date schedule',
   };
 
-  const handleTestClick = (test) => {
-    console.log('Test clicked:', test);
-    // router.push({
-      // pathname: 'TestDetail',
-      // params: {
-      //   ref_num,
-      //   test: JSON.stringify(test),
-      // },
-    // });
-  };
+  // const handleTestClick = (test) => {
+  //   console.log('Test clicked:', test);
+  //   router.push({
+  //     pathname: 'TestDetail',
+  //     params: {
+  //       ref_num,
+  //       test: JSON.stringify(test),
+  //     },
+  //   });
+  // };
 
   return (
     <View style={styles.container}>
@@ -52,10 +52,10 @@ const TestList = () => {
             </View>
           ) : (
             tests.map((test) => (
-              <TouchableOpacity
+              <View
                 key={test.id}
                 style={styles.testCard}
-                onPress={() => handleTestClick(test)}
+                // onPress={() => handleTestClick(test)}
               >
                 <View style={styles.testHeader}>
                   <Text style={styles.testName}>{test.name}</Text>
@@ -65,7 +65,7 @@ const TestList = () => {
                     Frequency: {frequencyLabels[test.test_frequency] || 'Unknown'}
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))
           )}
         </View>

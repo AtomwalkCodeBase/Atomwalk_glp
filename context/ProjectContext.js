@@ -16,11 +16,33 @@ const ProjectProvider = ({ children }) => {
   const [projectTitles, setProjectTitles] = useState({});
   const [completionCache, setCompletionCache] = useState({});
 
-  const START_DATE = new Date('2025-05-22');
-  const END_DATE = new Date('2025-07-11');
-  const CURRENT_DATE = new Date('2025-05-27');
+  // Constants in YYYY-MM-DD format
+  const START_DATE_STR = '2025-05-22';
+  const END_DATE_STR = '2025-07-11';
 
-  const formatDate = (date) => date.toISOString().split('T')[0];
+  // Helper functions for date handling
+  const getCurrentFormattedIST = () => {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    return formatDate(istTime);
+  };
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    if (typeof date === 'string') return date; // Assume already formatted
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const [currentDate, setCurrentDate] = useState(getCurrentFormattedIST());
+
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    return new Date(dateStr);
+  };
 
   const normalizeTestDate = (dateStr) => {
     if (!dateStr) return '';
@@ -32,9 +54,17 @@ const ProjectProvider = ({ children }) => {
     if (parts.length !== 3) return dateStr;
     const [day, month, year] = parts;
     const monthNum = months[month] || month.padStart(2, '0');
-    return `${day.padStart(2, '0')}-${monthNum}-${year}`;
+    return `${year}-${monthNum}-${day.padStart(2, '0')}`;
   };
 
+  const addDays = (dateStr, days) => {
+    const date = parseDate(dateStr);
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return formatDate(result);
+  };
+
+  // Other helper functions
   const getRatIds = useCallback((group) => {
     const maleRats = Array.isArray(group.rat_list_m) ? group.rat_list_m : [];
     const femaleRats = Array.isArray(group.rat_list_f) ? group.rat_list_f : [];
@@ -53,44 +83,37 @@ const ProjectProvider = ({ children }) => {
     }
   }, []);
 
-  const addDays = (date, days) => {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-  };
-
-  const getTestSchedule = (test, currentDate = CURRENT_DATE) => {
-    const testStartDate = addDays(START_DATE, test.no_of_days || 0);
-
+  const getTestSchedule = (test, currentDateStr) => {
+    const testStartDate = addDays(START_DATE_STR, test.no_of_days-1 || 0);
     let scheduleDates = [];
     const frequencyLabel = test.test_frequency_display || 'Unknown';
 
     if (test.test_frequency === 'N' && test.date_schedule) {
       scheduleDates = test.date_schedule
         .split(',')
-        .map(dateStr => new Date(dateStr.trim()))
-        .filter(date => !isNaN(date.getTime()) && date >= START_DATE && date <= END_DATE);
+        .map(dateStr => formatDate(new Date(dateStr.trim())))
+        .filter(dateStr => dateStr >= START_DATE_STR && dateStr <= END_DATE_STR);
     } else {
       switch (test.test_frequency) {
         case 'D':
-          for (let date = new Date(testStartDate); date <= END_DATE; date = addDays(date, 1)) {
-            scheduleDates.push(new Date(date));
+          for (let date = testStartDate; date <= END_DATE_STR; date = addDays(date, 1)) {
+            scheduleDates.push(date);
           }
           break;
         case 'W':
-          for (let date = new Date(testStartDate); date <= END_DATE; date = addDays(date, 7)) {
-            scheduleDates.push(new Date(date));
+          for (let date = testStartDate; date <= END_DATE_STR; date = addDays(date, 7)) {
+            scheduleDates.push(date);
           }
           break;
         case 'O':
-          if (testStartDate >= START_DATE && testStartDate <= END_DATE) {
-            scheduleDates.push(new Date(testStartDate));
+          if (testStartDate >= START_DATE_STR && testStartDate <= END_DATE_STR) {
+            scheduleDates.push(testStartDate);
           }
           break;
         case 'B':
           const beforeDate = addDays(testStartDate, -1);
-          if (beforeDate >= START_DATE && beforeDate <= END_DATE) {
-            scheduleDates.push(new Date(beforeDate));
+          if (beforeDate >= START_DATE_STR && beforeDate <= END_DATE_STR) {
+            scheduleDates.push(beforeDate);
           }
           break;
         default:
@@ -98,21 +121,15 @@ const ProjectProvider = ({ children }) => {
       }
     }
 
-    const formatDate = (date) => date.toISOString().split('T')[0];
-
-    const todayStr = formatDate(currentDate);
-    const yesterday = addDays(currentDate, -1);
-    const tomorrow = addDays(currentDate, 1);
-
-    const yesterdayStr = formatDate(yesterday);
-    const tomorrowStr = formatDate(tomorrow);
+    const yesterday = addDays(currentDateStr, -1);
+    const tomorrow = addDays(currentDateStr, 1);
 
     let status = 'None';
-    if (scheduleDates.some(date => formatDate(date) === todayStr)) {
+    if (scheduleDates.includes(currentDateStr)) {
       status = 'Today';
-    } else if (scheduleDates.some(date => formatDate(date) === yesterdayStr)) {
+    } else if (scheduleDates.includes(yesterday)) {
       status = 'Yesterday';
-    } else if (scheduleDates.some(date => formatDate(date) === tomorrowStr)) {
+    } else if (scheduleDates.includes(tomorrow)) {
       status = 'Tomorrow';
     }
 
@@ -125,19 +142,18 @@ const ProjectProvider = ({ children }) => {
   };
 
   const isTestScheduledToday = (test) => {
-    const { status } = getTestSchedule(test);
+    const { status } = getTestSchedule(test, currentDate);
     return status === 'Today';
   };
 
-  const getTestsForDate = (refNum, date) => {
+  const getTestsForDate = (refNum, dateStr) => {
     const tests = testsByProject[refNum] || [];
     const groups = groupsByProject[refNum] || [];
-    const dateStr = formatDate(new Date(date));
     const result = [];
 
     tests.forEach(test => {
-      const { scheduleDates, frequencyLabel, testStartDate } = getTestSchedule(test);
-      if (scheduleDates.some(d => formatDate(d) === dateStr)) {
+      const { scheduleDates, frequencyLabel, testStartDate } = getTestSchedule(test, dateStr);
+      if (scheduleDates.includes(dateStr)) {
         groups.forEach(group => {
           result.push({
             ...test,
@@ -145,7 +161,7 @@ const ProjectProvider = ({ children }) => {
             groupId: group.id,
             groupIdUser: group.group_id,
             frequencyLabel,
-            scheduleDate: new Date(dateStr),
+            scheduleDate: dateStr,
             testStartDate,
             species: group.species
           });
@@ -174,8 +190,7 @@ const ProjectProvider = ({ children }) => {
           data = data.filter(item => testIds.includes(item.test_type_id));
         }
         if (scheduleDate) {
-          const formattedDate = scheduleDate.split('-').reverse().join('-');
-          data = data.filter(item => item.test_date === formattedDate);
+          data = data.filter(item => item.test_date === scheduleDate);
         }
         if (ratId) data = data.filter(item => item.rat_no === ratId);
 
@@ -190,7 +205,7 @@ const ProjectProvider = ({ children }) => {
       }));
       return [];
     }
-  }, [groupIdMap, normalizeTestDate]);
+  }, [groupIdMap]);
 
   const updateCompletionCache = useCallback((refNum, groupId, testId, scheduleDate, completion) => {
     const cacheKey = `${refNum}-${groupId}-${testId}-${scheduleDate}`;
@@ -269,8 +284,8 @@ const ProjectProvider = ({ children }) => {
     return completion;
   }, [groupsByProject, testsByProject, getRatIds, getCapturedData, completionCache, updateCompletionCache, getAnimalName]);
 
-  const getAnimalCounts = useCallback(async (refNum, date) => {
-    const tests = getTestsForDate(refNum, date);
+  const getAnimalCounts = useCallback(async (refNum, dateStr) => {
+    const tests = getTestsForDate(refNum, dateStr);
     let totalAnimals = 0;
     let completedAnimals = 0;
 
@@ -279,7 +294,7 @@ const ProjectProvider = ({ children }) => {
         refNum,
         test.groupId,
         test.id,
-        test.scheduleDate.toISOString().split('T')[0],
+        test.scheduleDate,
         false
       );
       totalAnimals += completion.totalCount;
@@ -423,10 +438,13 @@ const ProjectProvider = ({ children }) => {
     getCompletionStatus,
     getAnimalCounts,
     updateCompletionCache,
-    START_DATE,
-    END_DATE,
-    CURRENT_DATE,
-    fetchAllData
+    START_DATE: START_DATE_STR,
+    END_DATE: END_DATE_STR,
+    currentDate,
+    setCurrentDate,
+    fetchAllData,
+    formatDate,
+    parseDate
   };
 
   return (

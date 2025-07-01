@@ -6,6 +6,7 @@ import { ProjectContext } from '../../context/ProjectContext';
 import DropdownPicker from '../components/DropdownPicker';
 import TestCard from '../components/TestCard';
 import { StyleSheet } from 'react-native';
+import DatePicker from '../components/DatePicker';
 
 const StudyResult = () => {
   const { ref_num, refresh } = useLocalSearchParams();
@@ -17,31 +18,28 @@ const StudyResult = () => {
     getTestsForDate,
     getCompletionStatus,
     getAnimalCounts,
-    CURRENT_DATE,
+    currentDate,
+    setCurrentDate,
   } = useContext(ProjectContext);
   const projectTitle = projectTitles[ref_num] || ref_num;
-
-  const tabs = ['Yesterday', 'Today', 'Tomorrow'];
-  const TODAY = CURRENT_DATE;
-
-  const tabDates = {
-    Yesterday: new Date(CURRENT_DATE),
-    Today: CURRENT_DATE,
-    Tomorrow: new Date(CURRENT_DATE)
-  };
-  tabDates.Yesterday.setDate(CURRENT_DATE.getDate() - 1);
-  tabDates.Tomorrow.setDate(CURRENT_DATE.getDate() + 1);
 
   const groups = groupsByProject[ref_num] || [];
   const allTests = testsByProject[ref_num] || [];
 
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedTest, setSelectedTest] = useState('All');
-  const [selectedTab, setSelectedTab] = useState('Today');
+  const [selectedDate, setSelectedDate] = useState(currentDate);
   const [groupedTests, setGroupedTests] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [animalCounts, setAnimalCounts] = useState({ totalAnimals: 0, completedAnimals: 0, pendingAnimals: 0 });
+
+  const handleDateChange = (formattedDate) => {
+    setSelectedDate(formattedDate);
+    if (setCurrentDate) {
+      setCurrentDate(formattedDate);
+    }
+  };
 
   const handleNavigation = useCallback((test) => {
     router.push({
@@ -50,7 +48,7 @@ const StudyResult = () => {
         ref_num,
         groupId: test.groupId,
         test: JSON.stringify(test),
-        scheduleDate: test.scheduleDate.toISOString().split('T')[0],
+        scheduleDate: test.scheduleDate, // Already in YYYY-MM-DD format
       },
     });
   }, [router, ref_num]);
@@ -59,8 +57,8 @@ const StudyResult = () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const dateForTab = tabDates[selectedTab];
-      const fetchedTests = getTestsForDate(ref_num, dateForTab);
+      // Get tests for the selected date (already in YYYY-MM-DD format)
+      const fetchedTests = getTestsForDate(ref_num, selectedDate);
 
       const filteredTests = fetchedTests.filter(test => {
         const matchesGroup = selectedGroup === 'All' || test.groupName === selectedGroup;
@@ -74,19 +72,15 @@ const StudyResult = () => {
             ref_num,
             test.groupId,
             test.id,
-            test.scheduleDate.toISOString().split('T')[0],
+            test.scheduleDate, // Already in YYYY-MM-DD format
             forceRefresh
           );
           return { ...test, completion };
         })
       );
 
-      if (selectedTab === 'Today') {
-        const counts = await getAnimalCounts(ref_num, dateForTab);
-        setAnimalCounts(counts);
-      } else {
-        setAnimalCounts({ totalAnimals: 0, completedAnimals: 0, pendingAnimals: 0 });
-      }
+      const counts = await getAnimalCounts(ref_num, selectedDate);
+      setAnimalCounts(counts);
 
       const grouped = testsWithCompletion.reduce((acc, test) => {
         const { groupName } = test;
@@ -102,7 +96,7 @@ const StudyResult = () => {
     } finally {
       setLoading(false);
     }
-  }, [ref_num, selectedTab, selectedTest, selectedGroup, getTestsForDate, getCompletionStatus, getAnimalCounts]);
+  }, [ref_num, selectedDate, selectedTest, selectedGroup, getTestsForDate, getCompletionStatus, getAnimalCounts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,11 +106,14 @@ const StudyResult = () => {
       } else {
         fetchTests(false);
       }
-      return () => {};
+      return () => { };
     }, [refresh, fetchTests, router])
   );
 
-  const formatDisplayDate = (date) => {
+  const formatDisplayDate = (dateStr) => {
+    // Parse the YYYY-MM-DD string to a Date object for display formatting
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -131,19 +128,26 @@ const StudyResult = () => {
       <View style={styles.sectionHeader}>
         <Text style={styles.projectName}>{`Project: ${projectTitle}`}</Text>
 
-        {selectedTab === 'Today' && (
-          <View style={styles.countsContainer}>
-            <Text style={styles.countsText}>
-              Total Animals: {animalCounts.totalAnimals}
-            </Text>
-            <Text style={[styles.countsText, { color: '#4CAF50' }]}>
-              Completed: {animalCounts.completedAnimals}
-            </Text>
-            <Text style={[styles.countsText, { color: '#FF9800' }]}>
-              Pending: {animalCounts.pendingAnimals}
-            </Text>
-          </View>
-        )}
+        <View style={styles.countsContainer}>
+          <Text style={styles.countsText}>
+            Total: {animalCounts.totalAnimals}
+          </Text>
+          <Text style={[styles.countsText, { color: '#4CAF50' }]}>
+            Completed: {animalCounts.completedAnimals}
+          </Text>
+          <Text style={[styles.countsText, { color: '#FF9800' }]}>
+            Pending: {animalCounts.pendingAnimals}
+          </Text>
+        </View>
+
+        {/* Date Picker Section */}
+        <View style={styles.datePickerContainer}>
+          <DatePicker
+            label="Select Date"
+            cDate={selectedDate}
+            setCDate={handleDateChange}
+          />
+        </View>
 
         <View style={styles.filterContainer}>
           <View style={styles.filterRow}>
@@ -180,29 +184,6 @@ const StudyResult = () => {
             </View>
           </View>
         </View>
-
-        <View style={styles.tabContainer}>
-          {tabs.map(tab => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                selectedTab === tab ? styles.activeTab : styles.inactiveTab
-              ]}
-              onPress={() => setSelectedTab(tab)}
-            >
-              <Text style={[
-                styles.tabText,
-                selectedTab === tab ? styles.activeTabText : styles.inactiveTabText
-              ]}>
-                {tab}
-              </Text>
-              <Text style={styles.tabDate}>
-                {formatDisplayDate(tabDates[tab])}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -224,7 +205,7 @@ const StudyResult = () => {
         ) : Object.keys(groupedTests).length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {`No tests scheduled for ${selectedTab.toLowerCase()}`}
+              {`No tests scheduled for ${formatDisplayDate(selectedDate)}`}
             </Text>
           </View>
         ) : (
@@ -236,7 +217,6 @@ const StudyResult = () => {
                   <TestCard
                     key={`test-${test.id}-${test.groupId}`}
                     test={test}
-                    selectedTab={selectedTab}
                     onPress={handleNavigation}
                     formatDisplayDate={formatDisplayDate}
                   />
@@ -281,8 +261,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1e293b',
   },
-  filterContainer: {
+  datePickerContainer: {
     marginBottom: 12,
+  },
+  filterContainer: {
+    marginBottom: 6,
   },
   filterRow: {
     flexDirection: 'row',
@@ -297,37 +280,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     marginBottom: 4,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#0288d1',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#0288d1',
-  },
-  inactiveTabText: {
-    color: '#64748b',
-  },
-  tabDate: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
   },
   scrollView: {
     flex: 1,
