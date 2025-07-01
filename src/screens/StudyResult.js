@@ -28,11 +28,17 @@ const StudyResult = () => {
 
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedTest, setSelectedTest] = useState('All');
-  const [selectedDate, setSelectedDate] = useState(currentDate);
+  const [selectedDate, setSelectedDate] = useState(null);
   const [groupedTests, setGroupedTests] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [animalCounts, setAnimalCounts] = useState({ totalAnimals: 0, completedAnimals: 0, pendingAnimals: 0 });
+
+  useEffect(() => {
+    if (!selectedDate && currentDate) {
+      setSelectedDate(currentDate);
+    }
+  }, [currentDate]);
 
   const handleDateChange = (formattedDate) => {
     setSelectedDate(formattedDate);
@@ -111,6 +117,8 @@ const StudyResult = () => {
   );
 
   const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return ''; // or return 'Invalid date' if you prefer
+
     // Parse the YYYY-MM-DD string to a Date object for display formatting
     const [year, month, day] = dateStr.split('-');
     const date = new Date(year, month - 1, day);

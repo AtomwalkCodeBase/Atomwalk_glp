@@ -18,7 +18,7 @@ const ProjectProvider = ({ children }) => {
 
   // Constants in YYYY-MM-DD format
   const START_DATE_STR = '2025-05-22';
-  const END_DATE_STR = '2025-07-11';
+  const END_DATE_STR = '2025-07-20';
 
   // Helper functions for date handling
   const getCurrentFormattedIST = () => {
@@ -84,7 +84,7 @@ const ProjectProvider = ({ children }) => {
   }, []);
 
   const getTestSchedule = (test, currentDateStr) => {
-    const testStartDate = addDays(START_DATE_STR, test.no_of_days-1 || 0);
+    const testStartDate = addDays(START_DATE_STR, test.no_of_days || 0);
     let scheduleDates = [];
     const frequencyLabel = test.test_frequency_display || 'Unknown';
 

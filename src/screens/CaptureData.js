@@ -119,7 +119,8 @@ const CaptureData = () => {
               return acc;
             }, {});
             newDataEntries[ratId] = subTypeData;
-            newExistingData[ratId] = Object.values(subTypeData).some(v => v !== '' && v !== null);
+            // Only mark as existing data if ALL subtypes have values
+            newExistingData[ratId] = Object.values(subTypeData).every(v => v !== '' && v !== null);
             newRemarks[ratId] = ratData[0]?.remarks || 'No Remarks';
           } else {
             const ratRecord = ratData.find(item => item.test_type_id === test.id);
@@ -174,10 +175,20 @@ const CaptureData = () => {
 
     setDataEntries(newDataEntries);
     setRemarks(newRemarks);
-    setExistingData(prev => ({
-      ...prev,
-      [ratId]: formattedValue !== '' && formattedValue !== 'null' && formattedValue !== null
-    }));
+    
+    // For modal (subtype) case, only mark as existing if ALL subtypes have values
+    if (useModal) {
+      const allSubtypesFilled = Object.values(JSON.parse(formattedValue)).every(v => v !== '' && v !== null);
+      setExistingData(prev => ({
+        ...prev,
+        [ratId]: allSubtypesFilled
+      }));
+    } else {
+      setExistingData(prev => ({
+        ...prev,
+        [ratId]: formattedValue !== '' && formattedValue !== 'null' && formattedValue !== null
+      }));
+    }
 
     const changesExist = checkForChanges(newDataEntries, newRemarks);
     setHasChanges(changesExist);
@@ -185,6 +196,48 @@ const CaptureData = () => {
     setTestDataModalVisible(false);
     setSubtypeModalVisible(false);
     setSelectedRat(null);
+  };
+
+  const handleModalSuccess = async (ratId) => {
+    setLoading(true);
+    try {
+      const allData = await getCapturedData(
+        ref_num, 
+        selectedGroupId, 
+        subTypes.map(st => st.id),
+        scheduleDate
+      );
+
+      const subTypeData = subTypes.reduce((acc, subType) => {
+        const record = allData.find(
+          item => item.rat_no === ratId &&
+                 item.test_type_id === subType.id && 
+                 item.test_sub_type === subType.test_sub_type
+        );
+        acc[subType.test_sub_type] = record?.t_value || '';
+        return acc;
+      }, {});
+
+      setDataEntries(prev => ({
+        ...prev,
+        [ratId]: subTypeData
+      }));
+      
+      // Only mark as existing if ALL subtypes have values
+      const allSubtypesFilled = Object.values(subTypeData).every(v => v !== '' && v !== null);
+      setExistingData(prev => ({
+        ...prev,
+        [ratId]: allSubtypesFilled
+      }));
+
+      const completion = await getCompletionStatus(ref_num, selectedGroupId, test.id, scheduleDate, true);
+      setCompletionStatus(completion);
+    } catch (err) {
+      setModalMessage('Failed to refresh data.');
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -228,8 +281,8 @@ const CaptureData = () => {
             remarks: remark || `Data captured via mobile app`
           };
 
-          console.log("Payload", payload)
-          await postGLPTestData(payload);
+          console.log("Payload", payload);
+          // await postGLPTestData(payload);
 
           setExistingData(prev => ({ ...prev, [ratId]: true }));
           submittedCount++;
@@ -306,6 +359,12 @@ const CaptureData = () => {
     return `${completed}/${subTypes.length} completed`;
   };
 
+  const isFullyCompleted = (ratId) => {
+    if (!useModal) return false;
+    const data = dataEntries[ratId] || {};
+    return Object.values(data).every(v => v !== '' && v !== null);
+  };
+
   if (!group || rats.length === 0) {
     return (
       <View style={styles.container}>
@@ -359,6 +418,7 @@ const CaptureData = () => {
                 const remark = remarks[ratId] !== 'No Remarks' ? remarks[ratId] : null;
                 const progress = getSubTypeProgress(ratId);
                 const displayValue = hasData ? String(dataEntries[ratId]) : '';
+                const isComplete = isFullyCompleted(ratId);
 
                 return (
                   <View key={ratId} style={styles.ratRow}>
@@ -375,12 +435,22 @@ const CaptureData = () => {
                             {test.test_unit && <Text style={styles.unit}>{test.test_unit}</Text>}
                           </View>
                         )}
-                        <CircleButton
-                          text={useModal ? (hasData ? "View" : "Capture Data") : (hasData ? "Edit" : "Add")}
-                          handlePress={() => handleCaptureData(ratId)}
-                          style={hasData ? styles.disabledButton : useModal ? styles.captureButton : styles.addButton}
-                          disabled={hasData}
-                        />
+                        {useModal && (
+                          <CircleButton
+                            text={isComplete ? "View" : "Capture Data"}
+                            handlePress={() => handleCaptureData(ratId)}
+                            style={isComplete ? styles.viewButton : styles.captureButton}
+                            disabled={false} // Always enabled for modal case
+                          />
+                        )}
+                        {!useModal && (
+                          <CircleButton
+                            text={hasData ? "Edit" : "Add"}
+                            handlePress={() => handleCaptureData(ratId)}
+                            style={hasData ? styles.disabledButton : styles.addButton}
+                            disabled={hasData}
+                          />
+                        )}
                       </View>
                     </View>
                     {useModal && progress && (
@@ -427,15 +497,13 @@ const CaptureData = () => {
             ratId={selectedRat}
             subTypes={subTypes}
             onClose={handleModalClose}
-            isDisabled={existingData[selectedRat]}
+            isDisabled={isFullyCompleted(selectedRat)}
             groupId={selectedGroupId}
             testId={test.id}
             testName={test.name}
             scheduleDate={scheduleDate}
             refNum={ref_num}
-            onSuccess={(data) => {
-              handleDataSave(selectedRat, data, remarks[selectedRat] || 'No Remarks');
-            }}
+            onSuccess={() => handleModalSuccess(selectedRat)}
           />
 
           <ConfirmationModal
@@ -458,11 +526,16 @@ const CaptureData = () => {
 
           <SuccessModal
             visible={showSuccessModal}
+            message={modalMessage}
             onClose={() => {
               setShowSuccessModal(false);
               router.back({ refresh: 'true' });
             }}
-            message={modalMessage}
+            onAutoClose={() => {
+              setShowSuccessModal(false);
+              router.back({ refresh: 'true' });
+            }}
+            autoCloseDelay={3000}
           />
 
           <ErrorModal
@@ -542,6 +615,10 @@ const styles = StyleSheet.create({
   captureButton: {
     backgroundColor: '#0288d1',
     minWidth: 120,
+  },
+  viewButton: {
+    backgroundColor: '#4CAF50',
+    minWidth: 80,
   },
   disabledButton: {
     backgroundColor: '#cccccc',

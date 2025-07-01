@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { useEffect } from 'react';
+import { Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
 
@@ -63,7 +63,7 @@ const ButtonText = styled.Text`
   font-weight: 500;
 `;
 
-const SuccessModal = ({ visible, onClose, autoCloseDelay = 3000, message }) => {
+const SuccessModal = ({ visible, onClose,onAutoClose, autoCloseDelay = 3000, message }) => {
   useEffect(() => {
     if (visible && onAutoClose) {
       const timer = setTimeout(() => {

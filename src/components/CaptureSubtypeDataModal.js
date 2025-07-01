@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
 import { ProjectContext } from '../../context/ProjectContext';
 import { postGLPTestData } from '../services/productServices';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -19,9 +19,10 @@ const CaptureSubtypeDataModal = ({
   testName,
   scheduleDate,
   refNum,
-  onSuccess = () => { },
+  onSuccess = () => {},
+  onSuccessModalClose = () => {}
 }) => {
-  const { getCapturedData, updateCompletionCache, getCompletionStatus } = useContext(ProjectContext);
+  const { getCapturedData, updateCompletionCache } = useContext(ProjectContext);
   const [initialData, setInitialData] = useState({});
   const [modalData, setModalData] = useState({});
   const [remarks, setRemarks] = useState({});
@@ -37,6 +38,7 @@ const CaptureSubtypeDataModal = ({
     total: subTypes.length
   });
   const [focusedSubType, setFocusedSubType] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible && ratId && refNum && groupId && scheduleDate) {
@@ -148,6 +150,7 @@ const CaptureSubtypeDataModal = ({
 
   const handleSubmit = async () => {
     setShowSubmitConfirm(false);
+    setIsSubmitting(true);
 
     try {
       const formattedDate = new Date(scheduleDate)
@@ -167,14 +170,12 @@ const CaptureSubtypeDataModal = ({
       for (const subType of subTypes) {
         const value = modalData[subType.test_sub_type]?.value;
         const remark = remarks[subType.test_sub_type] !== 'No Remarks' ? remarks[subType.test_sub_type] : '';
-        const initialValue = initialData[subType.test_sub_type]?.value || '';
-        const initialRemark = initialData[subType.test_sub_type]?.remark || 'No Remarks';
         const isChanged = changedFields[subType.test_sub_type];
 
         if (isChanged && value && value.trim() !== '') {
           const payload = {
             test_type_id: subType.id,
-            call_mode: 'ADD_TEST',
+            call_mode: initialData[subType.test_sub_type]?.value ? 'UPDATE_TEST' : 'ADD_TEST',
             group_id: groupId,
             test_name: subType.test_sub_type,
             rat_no: ratId,
@@ -184,47 +185,25 @@ const CaptureSubtypeDataModal = ({
             remarks: remark || `Data ${isEditing ? 'updated' : 'captured'} via mobile app`
           };
 
-          console.log("Payload", payload)
+          console.log('Payload:', payload);
           // await postGLPTestData(payload);
           submittedCount++;
         }
       }
 
       if (submittedCount > 0) {
-        const testData = await getCapturedData(refNum, groupId, null, scheduleDate, ratId);
-
-        const updatedData = subTypes.reduce((acc, subType) => {
-          const record = testData.find(
-            item => item.test_type_id === subType.id && item.test_sub_type === subType.test_sub_type
-          );
-          acc[subType.test_sub_type] = {
-            value: record?.t_value || '',
-            remark: record?.remarks || 'No Remarks'
-          };
-          return acc;
-        }, {});
-
-        const completed = Object.values(updatedData).filter(item => item.value !== '' && item.value !== null).length;
+        const completed = Object.values(modalData).filter(item => item.value !== '' && item.value !== null).length;
         setCompletionStatus({
           completed,
           total: subTypes.length
         });
-
-        console.log("completed", completed)
 
         await updateCompletionCache(refNum, groupId, testId, scheduleDate, null);
 
         setModalMessage(`${submittedCount} record(s) successfully ${isEditing ? 'updated' : 'saved'}`);
         setShowSuccessModal(true);
 
-        setInitialData(updatedData);
-        setModalData(updatedData);
-        setRemarks(
-          subTypes.reduce((acc, subType) => {
-            acc[subType.test_sub_type] = updatedData[subType.test_sub_type].remark;
-            return acc;
-          }, {})
-        );
+        setInitialData(modalData);
         setChangedFields({});
         setIsEditing(false);
         setFocusedSubType(null);
@@ -233,14 +212,17 @@ const CaptureSubtypeDataModal = ({
           setIsViewMode(true);
         }
 
-        onSuccess(updatedData);
+        onSuccess();
       } else {
         setModalMessage('No valid data to submit.');
         setShowErrorModal(true);
       }
     } catch (error) {
+      console.error('Submission error:', error);
       setModalMessage(`Failed to ${isEditing ? 'update' : 'submit'} data. Please try again.`);
       setShowErrorModal(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -257,6 +239,11 @@ const CaptureSubtypeDataModal = ({
     setFocusedSubType(null);
     setIsViewMode(isDisabled && Object.values(initialData).filter(item => item.value !== '' && item.value !== null).length === subTypes.length);
     onClose();
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    onSuccessModalClose();
   };
 
   return (
@@ -291,7 +278,7 @@ const CaptureSubtypeDataModal = ({
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.measurementsContent}
             >
-              {subTypes.map((subType, index) => {
+              {subTypes.map((subType) => {
                 const normalRange =
                   subType.low_range && subType.high_range
                     ? `${subType.low_range} - ${subType.high_range} ${subType.test_unit || ''}`
@@ -374,11 +361,15 @@ const CaptureSubtypeDataModal = ({
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
-                    style={styles.submitButton}
+                    style={[styles.submitButton, isSubmitting && styles.submittingButton]}
                     onPress={handleSubmitConfirmation}
-                    disabled={isViewMode}
+                    disabled={isViewMode || isSubmitting}
                   >
-                    <Text style={styles.buttonText}>Submit</Text>
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.buttonText}>Submit</Text>
+                    )}
                   </TouchableOpacity>
                 </>
               )}
@@ -398,13 +389,10 @@ const CaptureSubtypeDataModal = ({
 
       <SuccessModal
         visible={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          if (completionStatus.completed === completionStatus.total) {
-            handleClose();
-          }
-        }}
         message={modalMessage}
+        onClose={handleSuccessModalClose}
+        onAutoClose={handleSuccessModalClose}
+        autoCloseDelay={3000}
       />
 
       <ErrorModal
@@ -548,7 +536,7 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 15,
     color: '#1e293b',
-    height: 60, // Approximate height for 2 lines
+    height: 60,
     textAlignVertical: 'top',
   },
   buttonContainer: {
@@ -593,26 +581,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     minWidth: 160,
   },
-subtypeLabelContainer: {
-  flexDirection: 'column',
-  justifyContent: 'center',
-  marginRight: 12,
-  flexShrink: 1,
-},
-
-rowTop: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-},
-
-normalRange: {
-  fontSize: 12,
-  color: '#64748b',
-  marginTop: 2,
-},
-
-
+  subtypeLabelContainer: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    marginRight: 12,
+    flexShrink: 1,
+  },
+  rowTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  normalRange: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
 });
 
 export default CaptureSubtypeDataModal;
