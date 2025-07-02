@@ -29,6 +29,7 @@ const CaptureSubtypeDataModal = ({
   const [isEditing, setIsEditing] = useState(false);
   const [changedFields, setChangedFields] = useState({});
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
@@ -52,7 +53,7 @@ const CaptureSubtypeDataModal = ({
             );
             acc[subType.test_sub_type] = {
               value: record?.t_value || '',
-              remark: record?.remarks || 'No Remarks'
+              remark: record?.remarks || ''
             };
             return acc;
           }, {});
@@ -101,13 +102,13 @@ const CaptureSubtypeDataModal = ({
   const handleRemarkChange = (subType, remark) => {
     setRemarks(prev => ({
       ...prev,
-      [subType]: remark || 'No Remarks'
+      [subType]: remark || ''
     }));
     setModalData(prev => ({
       ...prev,
-      [subType]: { ...prev[subType], remark: remark || 'No Remarks' }
+      [subType]: { ...prev[subType], remark: remark || '' }
     }));
-    if (isEditing || !initialData[subType]?.remark || initialData[subType]?.remark === 'No Remarks') {
+    if (isEditing || !initialData[subType]?.remark || initialData[subType]?.remark === '') {
       setChangedFields(prev => ({
         ...prev,
         [subType]: true
@@ -125,6 +126,24 @@ const CaptureSubtypeDataModal = ({
   };
 
   const handleCancel = () => {
+    if (Object.keys(changedFields).length > 0) {
+      setShowExitConfirm(true);
+    } else {
+      resetModal();
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    if (Object.keys(changedFields).length > 0) {
+      setShowExitConfirm(true);
+    } else {
+      resetModal();
+      onClose();
+    }
+  };
+
+  const resetModal = () => {
     setModalData(initialData);
     setRemarks(
       subTypes.reduce((acc, subType) => {
@@ -136,6 +155,16 @@ const CaptureSubtypeDataModal = ({
     setChangedFields({});
     setFocusedSubType(null);
     setIsViewMode(isDisabled && Object.values(initialData).filter(item => item.value !== '' && item.value !== null).length === subTypes.length);
+  };
+
+  const confirmExit = () => {
+    setShowExitConfirm(false);
+    resetModal();
+    onClose();
+  };
+
+  const cancelExit = () => {
+    setShowExitConfirm(false);
   };
 
   const handleSubmitConfirmation = () => {
@@ -169,7 +198,7 @@ const CaptureSubtypeDataModal = ({
 
       for (const subType of subTypes) {
         const value = modalData[subType.test_sub_type]?.value;
-        const remark = remarks[subType.test_sub_type] !== 'No Remarks' ? remarks[subType.test_sub_type] : '';
+        const remark = remarks[subType.test_sub_type] !== '' ? remarks[subType.test_sub_type] : '';
         const isChanged = changedFields[subType.test_sub_type];
 
         if (isChanged && value && value.trim() !== '') {
@@ -185,8 +214,8 @@ const CaptureSubtypeDataModal = ({
             remarks: remark || `Data ${isEditing ? 'updated' : 'captured'} via mobile app`
           };
 
-          console.log('Payload:', payload);
-          // await postGLPTestData(payload);
+          // console.log('Payload:', payload);
+          await postGLPTestData(payload);
           submittedCount++;
         }
       }
@@ -202,17 +231,6 @@ const CaptureSubtypeDataModal = ({
 
         setModalMessage(`${submittedCount} record(s) successfully ${isEditing ? 'updated' : 'saved'}`);
         setShowSuccessModal(true);
-
-        setInitialData(modalData);
-        setChangedFields({});
-        setIsEditing(false);
-        setFocusedSubType(null);
-
-        if (completed === subTypes.length) {
-          setIsViewMode(true);
-        }
-
-        onSuccess();
       } else {
         setModalMessage('No valid data to submit.');
         setShowErrorModal(true);
@@ -226,23 +244,11 @@ const CaptureSubtypeDataModal = ({
     }
   };
 
-  const handleClose = () => {
-    setModalData(initialData);
-    setRemarks(
-      subTypes.reduce((acc, subType) => {
-        acc[subType.test_sub_type] = initialData[subType.test_sub_type].remark;
-        return acc;
-      }, {})
-    );
-    setIsEditing(false);
-    setChangedFields({});
-    setFocusedSubType(null);
-    setIsViewMode(isDisabled && Object.values(initialData).filter(item => item.value !== '' && item.value !== null).length === subTypes.length);
-    onClose();
-  };
-
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
+    resetModal();
+    onClose();
+    onSuccess();
     onSuccessModalClose();
   };
 
@@ -290,7 +296,7 @@ const CaptureSubtypeDataModal = ({
                       (initialData[subType.test_sub_type]?.value &&
                         initialData[subType.test_sub_type]?.value !== '' &&
                         initialData[subType.test_sub_type]?.value !== null)));
-                const remark = remarks[subType.test_sub_type] !== 'No Remarks' ? remarks[subType.test_sub_type] : null;
+                const remark = remarks[subType.test_sub_type] !== '' ? remarks[subType.test_sub_type] : null;
 
                 return (
                   <View key={subType.test_sub_type} style={styles.measurementRow}>
@@ -329,7 +335,7 @@ const CaptureSubtypeDataModal = ({
                             style={styles.remarkInput}
                             placeholder="Enter remarks"
                             placeholderTextColor="#64748b"
-                            value={remarks[subType.test_sub_type] !== 'No Remarks' ? remarks[subType.test_sub_type] : ''}
+                            value={remarks[subType.test_sub_type] !== '' ? remarks[subType.test_sub_type] : ''}
                             onChangeText={(text) => handleRemarkChange(subType.test_sub_type, text)}
                             multiline
                             numberOfLines={2}
@@ -345,8 +351,9 @@ const CaptureSubtypeDataModal = ({
             <View style={styles.buttonContainer}>
               {isViewMode ? (
                 <TouchableOpacity
-                  style={styles.viewButton}
-                  onPress={handleEdit}
+                  style={[styles.viewButton, { backgroundColor: '#cbd5e1' }]}
+                  onPress={() => {}}
+                  disabled={true}
                 >
                   <Text style={styles.buttonText}>Edit</Text>
                 </TouchableOpacity>
@@ -384,6 +391,15 @@ const CaptureSubtypeDataModal = ({
         onCancel={() => setShowSubmitConfirm(false)}
         message="Are you sure you want to submit these changes?"
         confirmText="Submit"
+        cancelText="Cancel"
+      />
+
+      <ConfirmationModal
+        visible={showExitConfirm}
+        onConfirm={confirmExit}
+        onCancel={cancelExit}
+        message="Are you sure you want to exit? Your unsaved changes will be lost."
+        confirmText="Exit"
         cancelText="Cancel"
       />
 
@@ -565,6 +581,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     flex: 1,
+  },
+  submittingButton: {
+    backgroundColor: '#16a34a',
   },
   buttonText: {
     color: '#ffffff',

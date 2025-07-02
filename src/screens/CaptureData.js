@@ -281,8 +281,8 @@ const CaptureData = () => {
             remarks: remark || `Data captured via mobile app`
           };
 
-          console.log("Payload", payload);
-          // await postGLPTestData(payload);
+          // console.log("Payload", payload);
+          await postGLPTestData(payload);
 
           setExistingData(prev => ({ ...prev, [ratId]: true }));
           submittedCount++;

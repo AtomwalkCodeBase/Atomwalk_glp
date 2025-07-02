@@ -17,8 +17,12 @@ const TestDataModal = ({
   const [remarks, setRemarks] = useState(initialRemarks);
 
   useEffect(() => {
-    setRemarks(initialRemarks);
-  }, [initialRemarks]);
+    if (visible) {
+      setTestValue(initialValue || ''); 
+      setRemarks(initialRemarks || '');
+    }
+  }, [visible, ratId, initialValue, initialRemarks]);
+
 
   const handleSave = () => {
     if (!testValue.trim()) {
