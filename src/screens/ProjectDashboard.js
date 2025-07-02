@@ -99,7 +99,7 @@ const ProjectDashboard = () => {
 
   return (
     <Container>
-      <StatusBar style="dark" backgroundColor="#c2fbcd" />
+      <StatusBar style="dark" backgroundColor="#5ed2ce" />
       <HeaderComponent headerTitle="Project Dashboard" onBackPress={handleBackPress} />
       <ContentContainer>
         <ProjectHeader>

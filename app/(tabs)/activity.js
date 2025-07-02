@@ -35,8 +35,6 @@ const Activity = () => {
       });
   }, []);
 
-  console.log('Profile==', user);
-
   // if (loading) {
   //   return (
   //     <SafeAreaView>

@@ -13,11 +13,8 @@ import SuccessModal from '../components/SuccessModal';
 const { width } = Dimensions.get('window');
 
 // Styled Components
-const GradientBackground = styled(LinearGradient).attrs({
-  colors: ['#c2fbcd', '#ffdde1'],
-  start: { x: 0, y: 0 },
-  end: { x: 1, y: 1 },
-})`
+const GradientBackground = styled.View`
+  background-color: #f5f5f5;
   flex: 1;
 `;
 

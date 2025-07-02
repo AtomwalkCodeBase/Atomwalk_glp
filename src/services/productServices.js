@@ -1,6 +1,6 @@
 import { addEmpLeave, getEmpLeavedata, addClaim, getEmpClaimdata, getExpenseItemList, getProjectList, getEmpAttendanceData, 
   getEmpHolidayData, empCheckData, processClaim, getClaimApproverList, getActivities, getActivityQc, processActivity, 
-  bookingListURL, getGLPGroup, getGLPTest, getGLPTestData, processGLPTestData } from "../services/ConstantServies";
+  bookingListURL, getGLPGroup, getGLPTest, getGLPTestData, processGLPTestData, projectList } from "../services/ConstantServies";
 import { authAxios, authAxiosFilePost, authAxiosPost } from "./HttpMethod";
 
 export function getEmpLeave(leave_type , emp_id, year) {
@@ -171,4 +171,8 @@ export function postGLPTestData(payload) {
   }
   console.log('Data to be sent:', JSON.stringify(data, null, 2));
   return authAxiosPost(processGLPTestData, data)
+}
+
+export function getGLPProjectList(){
+  return authAxios(projectList)
 }

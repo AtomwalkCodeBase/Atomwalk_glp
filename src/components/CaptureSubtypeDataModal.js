@@ -182,7 +182,7 @@ const CaptureSubtypeDataModal = ({
     setIsSubmitting(true);
 
     try {
-      const formattedDate = new Date(scheduleDate)
+      const formattedDate = new Date()
         .toLocaleDateString('en-GB')
         .split('/')
         .join('-');
@@ -214,8 +214,8 @@ const CaptureSubtypeDataModal = ({
             remarks: remark || `Data ${isEditing ? 'updated' : 'captured'} via mobile app`
           };
 
-          // console.log('Payload:', payload);
-          await postGLPTestData(payload);
+          console.log('Payload:', payload);
+          // await postGLPTestData(payload);
           submittedCount++;
         }
       }

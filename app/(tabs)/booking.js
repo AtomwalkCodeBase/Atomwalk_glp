@@ -1,11 +1,12 @@
 import { StyleSheet, View } from 'react-native'
-import LabBooking from '../../src/screens/LabBooking';
+// import LabBooking from '../../src/screens/LabBooking';
+import EquipmentBooking from '../../src/screens/EquipmentBookingDemo'
 
 const booking = () => {
     return (
         <View style={{ flex: 1 }}>
-            <LabBooking />
-
+            {/* <LabBooking /> */}
+            <EquipmentBooking/>
         </View>
     )
 }

@@ -12,16 +12,11 @@ import HeaderComponent from '../components/HeaderComponent';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Styled components
-const GradientBackground = styled(LinearGradient).attrs({
-  colors: ['#c2fbcd', '#ffdde1'],
-  start: { x: 0, y: 0 },
-  end: { x: 1, y: 1 },
-})`
+const GradientBackground = styled.View`
   flex: 1;
+  background-color: #f5f5f5;
   align-items: center;
-  /* justify-content: flex-start; */
   height: 100%;
-  /* padding: 20px; */
 `;
 const Container = styled.View`
   /* flex: 1; */

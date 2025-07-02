@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Dimensions } from 'react-native';
 import styled from 'styled-components/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,11 +10,8 @@ import { getActivityList } from '../services/productServices';
 
 const { width } = Dimensions.get('window');
 
-const GradientBackground = styled(LinearGradient).attrs({
-    colors: ['#c2fbcd', '#ffdde1'],
-    start: { x: 0, y: 0 },
-    end: { x: 1, y: 1 },
-})`
+const GradientBackground = styled.View`
+    background-color: #f5f5f5;
     align-items: center;
     height: 100%;
 `;

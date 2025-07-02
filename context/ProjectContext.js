@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
-import { getActivityList, getGLPGroupList, getGLPTestList, getGLPTestDataList } from '../src/services/productServices';
+import { getActivityList, getGLPGroupList, getGLPTestList, getGLPTestDataList, getGLPProjectList } from '../src/services/productServices';
 
 const ProjectContext = createContext();
 
@@ -19,6 +19,19 @@ const ProjectProvider = ({ children }) => {
   // Constants in YYYY-MM-DD format
   const START_DATE_STR = '2025-05-22';
   const END_DATE_STR = '2025-07-20';
+
+  useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const projects = await getGLPProjectList();
+      console.log(projects.data); // Do something with the projects
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  fetchProjects();
+}, []);
 
   // Helper functions for date handling
   const getCurrentFormattedIST = () => {

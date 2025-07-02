@@ -1,7 +1,8 @@
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
+import DetailHeader from '../components/DetailHeader';
 import { ProjectContext } from '../../context/ProjectContext';
 
 const GroupList = () => {
@@ -11,15 +12,21 @@ const GroupList = () => {
   const groups = groupsByProject[ref_num] || [];
   const projectTitle = projectTitles[ref_num] || ref_num;
 
+  const [speciesName, setSpeciesName] = useState("Others");
+
+  useEffect(() => {
+    if (groups.length > 0) {
+      setSpeciesName(getSpeciesType());
+    }
+  }, [groups]);
+
   const handleSelectGroup = (item) => {
     setSelectedGroup(item);
     router.push({
       pathname: 'AnimalDetails',
       params: {
-        projectTitle,
-        groupId: item.group_id,
-        groupName: item.study_type,
         ref_num,
+        speciesName: speciesName,
       },
     });
   };
@@ -32,8 +39,10 @@ const GroupList = () => {
         return 'Rat';
       case 'P':
         return 'Pig';
+      case 'D':
+        return 'Dog';
       default:
-        return 'Unknown';
+        return 'Other';
     }
   };
 
@@ -44,68 +53,25 @@ const GroupList = () => {
     >
       <View style={styles.cardHeader}>
         <Text style={styles.groupName}>{item.study_type || 'Unknown'}</Text>
-        {/* <View style={[
-          styles.statusBadge,
-          { backgroundColor: getStatusBgColor(item.status) }
-        ]}>
-          <Text style={[
-            styles.statusText,
-            { color: getStatusColor(item.status) }
-          ]}>
-            {item.status}
-          </Text>
-        </View> */}
       </View>
-
-      {/* <View style={styles.cardContent}>
-        <View style={styles.testInfo}>
-          <Text style={styles.testCount}>{item.total_tests}</Text>
-          <Text style={styles.testLabel}>Total Tests</Text>
-        </View>
-
-        <View style={styles.testInfo}>
-          <Text style={styles.testCount}>{item.completed_tests}</Text>
-          <Text style={styles.testLabel}>Completed</Text>
-        </View>
-
-        <View style={styles.testInfo}>
-          <Text style={styles.testCount}>{item.total_tests - item.completed_tests}</Text>
-          <Text style={styles.testLabel}>Remaining</Text>
-        </View>
-      </View> */}
-
-      {/* Progress bar */}
-      {/* <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${(item.completed_tests / item.total_tests) * 100}%`,
-                backgroundColor: getStatusColor(item.status)
-              }
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>
-          {Math.round((item.completed_tests / item.total_tests) * 100)}%
-        </Text>
-      </View> */}
+      
+      <View style={styles.groupDetails}>
+        <Text style={styles.groupId}>{item.group_id} [{item.name}]</Text>
+        {item.dose_detail && (
+          <Text style={styles.doseDetail}>{item.dose_detail}</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
       <HeaderComponent headerTitle="Groups List" onBackPress={() => router.back()} />
-      <View style={styles.sectionHeader}>
-        <View style={styles.labelValueContainer}>
-          <Text style={styles.label}>Project:</Text>
-          <Text style={styles.value}>{projectTitle}</Text>
-        </View>
-        {groups.length > 0 && (
-          <Text style={styles.projectHeader}>Species: {getSpeciesType()}</Text>
-        )}
-      </View>
+      
+      <DetailHeader
+        projectTitle={projectTitle}
+        speciesType={speciesName}
+      />
 
       {errors[ref_num]?.groups ? (
         <View style={styles.emptyContainer}>
@@ -135,42 +101,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
-  sectionHeader: {
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  projectHeader: {
-    fontSize: 16,
-    color: '#444',
-    marginBottom: 4,
-  },
-  labelValueContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 16,
-    color: '#444',
-    width: 60,
-  },
-  value: {
-    fontSize: 16,
-    color: '#444',
-    flex: 1,
-  },
-  pageTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#343a40',
-  },
   listContainer: {
     padding: 16,
   },
@@ -186,70 +116,28 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   groupName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#343a40',
-    flex: 1,
-    marginRight: 12,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-  },
-  cardContent: {
+  groupDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-  },
-  testInfo: {
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  testCount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#343a40',
-  },
-  testLabel: {
-    fontSize: 12,
-    color: '#6c757d',
-    marginTop: 4,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#e9ecef',
-    borderRadius: 4,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
+  groupId: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#343a40',
-    minWidth: 40,
-    textAlign: 'right',
+    color: '#6c757d',
+    fontStyle: 'italic',
+    fontWeight: '500',
+  },
+  doseDetail: {
+    fontSize: 14,
+    color: '#495057',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,

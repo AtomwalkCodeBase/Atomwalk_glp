@@ -12,6 +12,7 @@ const db_name = "LMS_002";
 // console.log('Dbbvjkdvnc',db_name)
 export const endpoint = `${localhost}${apiURL}`;
 export const labEndpoint = `${localhost}/lab_api`;
+export const hrEndpoint = `${localhost}/hr_api`;
 
 export const productListURL = `${endpoint}/products/${db_name}/`;
 export const productDetailURL = id => `${endpoint}/products/${db_name}/${id}/`;
@@ -77,6 +78,9 @@ export const getGLPGroup = `${labEndpoint}/get_glp_group_list/${db_name}/`;
 export const getGLPTest = `${labEndpoint}/get_glp_test_list/${db_name}/`;
 export const getGLPTestData = `${labEndpoint}/get_glp_test_data_list/${db_name}/`;
 export const processGLPTestData = `${labEndpoint}/process_glp_test_data/${db_name}/`;
+
+//HR Endpoints
+export const projectList = `${hrEndpoint}/get_project_list/${db_name}/`;
 // export const empLoginURL = async () => {
 //   const db_name = await getDbName();
 //   return `${newendpoint}/emp_user_login/${db_name}/`;

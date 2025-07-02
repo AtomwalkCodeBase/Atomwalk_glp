@@ -172,13 +172,13 @@ useEffect(() => {
 
     return (
       <SafeAreaContainer>
-      <StatusBar barStyle="light-content" backgroundColor="rgb(104, 200, 123)" />
+      <StatusBar barStyle="light-content" backgroundColor="#5ed2ce" />
           <Container>
             <Header style={styles.headerContainer}>
               <LinearGradient 
-                colors={['#c2fbcd', '#ffdde1']} 
-                start={[0, 0]} 
-                end={[1, 1]}
+                colors={['#5ed2ce', '#b2ebe8']} 
+                start={[0.5, 0]} 
+                end={[0.5, 1]}
                 style={styles.headerGradient}
               >
                 <View style={styles.headerTop}>
@@ -510,7 +510,7 @@ const Footer = styled.View`
 `;
 
 const FooterText = styled.Text`
-  color:rgb(104, 200, 123);
+  color:#088f8f;
   font-size: ${scaleWidth(14)}px;
   font-weight: 500;
 `;

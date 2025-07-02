@@ -5,8 +5,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Styled Components
+const StatusBarView = styled(View)`
+  background-color: #5ed2ce;
+`;
+
 const HeaderContainer = styled(SafeAreaView)`
-  background-color: #c2fbcd;
+  background-color: #5ed2ce;
   padding: 10px 20px;
   flex-direction: row;
   align-items: center;
@@ -28,25 +32,60 @@ const HeaderTitle = styled(Text)`
   flex: 1;
 `;
 
-const PlaceholderView = styled(View)`
+const RightIconsContainer = styled(View)`
+  flex-direction: row;
+  align-items: center;
+`;
+
+const IconButton = styled(TouchableOpacity)`
+  width: 30px;
+  align-items: center;
+`;
+
+const Spacer = styled(View)`
   width: 30px;
 `;
 
 // HeaderComponent
-const HeaderComponent = ({ headerTitle, onBackPress }) => {
+const HeaderComponent = ({
+  headerTitle,
+  onBackPress,
+  icon1Name,
+  icon1OnPress,
+  icon2Name,
+  icon2OnPress,
+}) => {
   return (
-    <HeaderContainer edges={["top"]}>
-      {/* Back Button */}
-      <BackButton onPress={onBackPress}>
-        <Ionicons name="arrow-back" size={24} color="#000" />
-      </BackButton>
+    <>
+      {/* Handle status bar for Android */}
+      {Platform.OS === 'android' && <StatusBarView />}
+      
+      {/* SafeAreaView for iOS notches and header content */}
+      <HeaderContainer edges={['top']}>
+        {/* Back Button */}
+        <BackButton onPress={onBackPress} activeOpacity={0.6}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </BackButton>
 
-      {/* Title */}
-      <HeaderTitle numberOfLines={1}>{headerTitle}</HeaderTitle>
+        {/* Title */}
+        <HeaderTitle numberOfLines={1}>{headerTitle}</HeaderTitle>
 
-      {/* Placeholder */}
-      <PlaceholderView />
-    </HeaderContainer>
+        {/* Right Icons or Spacer */}
+        <RightIconsContainer>
+          {icon1Name && (
+            <IconButton onPress={icon1OnPress} activeOpacity={0.6}>
+              <Ionicons name={icon1Name} size={24} color="#000" />
+            </IconButton>
+          )}
+          {icon2Name && (
+            <IconButton onPress={icon2OnPress} activeOpacity={0.6}>
+              <Ionicons name={icon2Name} size={24} color="#000" />
+            </IconButton>
+          )}
+          {!icon1Name && !icon2Name && <Spacer />}
+        </RightIconsContainer>
+      </HeaderContainer>
+    </>
   );
 };
 

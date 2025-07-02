@@ -242,7 +242,7 @@ const CaptureData = () => {
 
   const handleSubmit = async () => {
     try {
-      const formattedDate = new Date(scheduleDate)
+      const formattedDate = new Date()
         .toLocaleDateString('en-GB')
         .split('/')
         .join('-');
@@ -281,8 +281,8 @@ const CaptureData = () => {
             remarks: remark || `Data captured via mobile app`
           };
 
-          // console.log("Payload", payload);
-          await postGLPTestData(payload);
+          console.log("Payload", payload);
+          // await postGLPTestData(payload);
 
           setExistingData(prev => ({ ...prev, [ratId]: true }));
           submittedCount++;
@@ -445,7 +445,7 @@ const CaptureData = () => {
                         )}
                         {!useModal && (
                           <CircleButton
-                            text={hasData ? "Edit" : "Add"}
+                            text={hasData ? "Add" : "Add"}
                             handlePress={() => handleCaptureData(ratId)}
                             style={hasData ? styles.disabledButton : styles.addButton}
                             disabled={hasData}

@@ -62,7 +62,7 @@ const TestDataModal = ({
                       value={testValue}
                       onChangeText={setTestValue}
                       placeholder="Enter test value"
-                      keyboardType={testUnit === 'g' ? 'numeric' : 'default'}
+                      keyboardType= 'numeric'
                     />
                     {testUnit && <Text style={styles.unit}>{testUnit}</Text>}
                   </View>

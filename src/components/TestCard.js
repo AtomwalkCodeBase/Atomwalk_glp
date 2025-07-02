@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 const TestCard = ({ test, onPress, formatDisplayDate }) => {
-  // Color scheme matching ClaimCardContainer
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed': return '#4CAF50'; // Approved - Green

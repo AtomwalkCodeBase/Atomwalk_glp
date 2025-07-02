@@ -1,12 +1,11 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { useContext, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
 import { ProjectContext } from '../../context/ProjectContext';
-import DropdownPicker from '../components/DropdownPicker';
 import TestCard from '../components/TestCard';
 import { StyleSheet } from 'react-native';
-import DatePicker from '../components/DatePicker';
+import FilterModal from '../components/StudyResultFilterModal';
 
 const StudyResult = () => {
   const { ref_num, refresh } = useLocalSearchParams();
@@ -26,83 +25,73 @@ const StudyResult = () => {
   const groups = groupsByProject[ref_num] || [];
   const allTests = testsByProject[ref_num] || [];
 
-  const [selectedGroup, setSelectedGroup] = useState('All');
-  const [selectedTest, setSelectedTest] = useState('All');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [filters, setFilters] = useState({
+    startDate: currentDate || new Date().toISOString().split('T')[0],
+    group: 'All',
+    test: 'All',
+  });
   const [groupedTests, setGroupedTests] = useState({});
+  const [filteredTests, setFilteredTests] = useState({});
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [animalCounts, setAnimalCounts] = useState({ totalAnimals: 0, completedAnimals: 0, pendingAnimals: 0 });
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
-  useEffect(() => {
-    if (!selectedDate && currentDate) {
-      setSelectedDate(currentDate);
-    }
-  }, [currentDate]);
-
-  const handleDateChange = (formattedDate) => {
-    setSelectedDate(formattedDate);
-    if (setCurrentDate) {
-      setCurrentDate(formattedDate);
-    }
-  };
-
-  const handleNavigation = useCallback((test) => {
-    router.push({
-      pathname: '/CaptureData',
-      params: {
-        ref_num,
-        groupId: test.groupId,
-        test: JSON.stringify(test),
-        scheduleDate: test.scheduleDate, // Already in YYYY-MM-DD format
-      },
-    });
-  }, [router, ref_num]);
-
-  const fetchTests = useCallback(async (forceRefresh = false) => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      // Get tests for the selected date (already in YYYY-MM-DD format)
-      const fetchedTests = getTestsForDate(ref_num, selectedDate);
-
-      const filteredTests = fetchedTests.filter(test => {
-        const matchesGroup = selectedGroup === 'All' || test.groupName === selectedGroup;
-        const matchesTest = selectedTest === 'All' || test.name === selectedTest;
-        return matchesGroup && matchesTest;
+  const handleNavigation = useCallback(
+    (test) => {
+      router.push({
+        pathname: '/CaptureData',
+        params: {
+          ref_num,
+          groupId: test.groupId,
+          test: JSON.stringify(test),
+          scheduleDate: test.scheduleDate,
+        },
       });
+    },
+    [router, ref_num]
+  );
 
-      const testsWithCompletion = await Promise.all(
-        filteredTests.map(async test => {
-          const completion = await getCompletionStatus(
-            ref_num,
-            test.groupId,
-            test.id,
-            test.scheduleDate, // Already in YYYY-MM-DD format
-            forceRefresh
-          );
-          return { ...test, completion };
-        })
-      );
+  const fetchTests = useCallback(
+    async (forceRefresh = false) => {
+      setLoading(true);
+      setFetchError(null);
+      try {
+        const fetchedTests = getTestsForDate(ref_num, filters.startDate);
 
-      const counts = await getAnimalCounts(ref_num, selectedDate);
-      setAnimalCounts(counts);
+        const testsWithCompletion = await Promise.all(
+          fetchedTests.map(async (test) => {
+            const completion = await getCompletionStatus(
+              ref_num,
+              test.groupId,
+              test.id,
+              test.scheduleDate,
+              forceRefresh
+            );
+            return { ...test, completion };
+          })
+        );
 
-      const grouped = testsWithCompletion.reduce((acc, test) => {
-        const { groupName } = test;
-        if (!acc[groupName]) acc[groupName] = [];
-        acc[groupName].push(test);
-        return acc;
-      }, {});
+        const counts = await getAnimalCounts(ref_num, filters.startDate);
+        setAnimalCounts(counts);
 
-      setGroupedTests(grouped);
-    } catch (err) {
-      console.error('Error fetching tests:', err);
-      setFetchError('Failed to load tests. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [ref_num, selectedDate, selectedTest, selectedGroup, getTestsForDate, getCompletionStatus, getAnimalCounts]);
+        const grouped = testsWithCompletion.reduce((acc, test) => {
+          const { groupName } = test;
+          if (!acc[groupName]) acc[groupName] = [];
+          acc[groupName].push(test);
+          return acc;
+        }, {});
+
+        setGroupedTests(grouped);
+      } catch (err) {
+        console.error('Error fetching tests:', err);
+        setFetchError('Failed to load tests. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [ref_num, filters.startDate, getTestsForDate, getCompletionStatus, getAnimalCounts]
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -112,14 +101,34 @@ const StudyResult = () => {
       } else {
         fetchTests(false);
       }
-      return () => { };
+      return () => {};
     }, [refresh, fetchTests, router])
   );
 
-  const formatDisplayDate = (dateStr) => {
-    if (!dateStr) return ''; // or return 'Invalid date' if you prefer
+  useEffect(() => {
+    let filtered = { ...groupedTests };
 
-    // Parse the YYYY-MM-DD string to a Date object for display formatting
+    if (filters.group !== 'All') {
+      filtered = Object.fromEntries(
+        Object.entries(filtered).filter(([groupName]) => groupName === filters.group)
+      );
+    }
+
+    if (filters.test !== 'All') {
+      filtered = Object.fromEntries(
+        Object.entries(filtered).map(([groupName, tests]) => [
+          groupName,
+          tests.filter((test) => test.name === filters.test),
+        ])
+      );
+      filtered = Object.fromEntries(Object.entries(filtered).filter(([_, tests]) => tests.length > 0));
+    }
+
+    setFilteredTests(filtered);
+  }, [groupedTests, filters]);
+
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return '';
     const [year, month, day] = dateStr.split('-');
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('en-US', {
@@ -129,66 +138,54 @@ const StudyResult = () => {
     });
   };
 
+  const clearFilters = () => {
+    setFilters({
+      startDate: currentDate || new Date().toISOString().split('T')[0],
+      group: 'All',
+      test: 'All',
+    });
+    setShowFilterModal(false);
+    if (setCurrentDate) {
+      setCurrentDate(currentDate || new Date().toISOString().split('T')[0]);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <HeaderComponent headerTitle="Study Result" onBackPress={() => router.back()} />
+      <HeaderComponent
+        headerTitle="Study Result"
+        onBackPress={() => router.back()}
+        icon1Name="filter"
+        icon1OnPress={() => setShowFilterModal(true)}
+      />
 
       <View style={styles.sectionHeader}>
         <Text style={styles.projectName}>{`Project: ${projectTitle}`}</Text>
 
         <View style={styles.countsContainer}>
-          <Text style={styles.countsText}>
-            Total: {animalCounts.totalAnimals}
-          </Text>
-          <Text style={[styles.countsText, { color: '#4CAF50' }]}>
-            Completed: {animalCounts.completedAnimals}
-          </Text>
-          <Text style={[styles.countsText, { color: '#FF9800' }]}>
-            Pending: {animalCounts.pendingAnimals}
-          </Text>
-        </View>
-
-        {/* Date Picker Section */}
-        <View style={styles.datePickerContainer}>
-          <DatePicker
-            label="Select Date"
-            cDate={selectedDate}
-            setCDate={handleDateChange}
-          />
-        </View>
-
-        <View style={styles.filterContainer}>
-          <View style={styles.filterRow}>
-            <View style={styles.dropdownContainer}>
-              <Text style={styles.dropdownLabel}>Select Group</Text>
-              <DropdownPicker
-                label="Group"
-                data={[
-                  { label: 'All', value: 'All' },
-                  ...groups.map(group => ({
-                    label: group.study_type,
-                    value: group.study_type
-                  })),
-                ]}
-                value={selectedGroup}
-                setValue={setSelectedGroup}
-              />
+          {/* Labels Row */}
+          <View style={styles.countsLabelsRow}>
+            <Text style={[styles.countLabel, { color: '#2196F3' }]}>Total</Text>
+            <Text style={[styles.countLabel, { color: '#2E7D32' }]}>Completed</Text>
+            <Text style={[styles.countLabel, { color: '#EF6C00' }]}>Pending</Text>
+          </View>
+          
+          {/* Values Row */}
+          <View style={styles.countsValuesRow}>
+            <View style={[styles.countValueContainer, { backgroundColor: '#E3F2FD' }]}>
+              <Text style={[styles.countValue, { color: '#1565C0' }]}>
+                {animalCounts.totalAnimals}
+              </Text>
             </View>
-
-            <View style={styles.dropdownContainer}>
-              <Text style={styles.dropdownLabel}>Select Test</Text>
-              <DropdownPicker
-                label="Test"
-                data={[
-                  { label: 'All', value: 'All' },
-                  ...[...new Set(allTests.map(test => test.name))].map(name => ({
-                    label: name,
-                    value: name
-                  })),
-                ]}
-                value={selectedTest}
-                setValue={setSelectedTest}
-              />
+            <View style={[styles.countValueContainer, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={[styles.countValue, { color: '#2E7D32' }]}>
+                {animalCounts.completedAnimals}
+              </Text>
+            </View>
+            <View style={[styles.countValueContainer, { backgroundColor: '#FFF3E0' }]}>
+              <Text style={[styles.countValue, { color: '#EF6C00' }]}>
+                {animalCounts.pendingAnimals}
+              </Text>
             </View>
           </View>
         </View>
@@ -203,25 +200,22 @@ const StudyResult = () => {
         ) : fetchError ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{fetchError}</Text>
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => fetchTests(true)}
-            >
+            <TouchableOpacity style={styles.retryButton} onPress={() => fetchTests(true)}>
               <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
           </View>
-        ) : Object.keys(groupedTests).length === 0 ? (
+        ) : Object.keys(filteredTests).length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              {`No tests scheduled for ${formatDisplayDate(selectedDate)}`}
+              {`No tests scheduled for ${formatDisplayDate(filters.startDate)}`}
             </Text>
           </View>
         ) : (
           <View style={styles.testsContainer}>
-            {Object.entries(groupedTests).map(([groupName, groupTests]) => (
+            {Object.entries(filteredTests).map(([groupName, groupTests]) => (
               <View key={`group-${groupName}`} style={styles.groupSection}>
                 <Text style={styles.groupName}>{`${groupTests[0]?.groupIdUser || 'ID'} [${groupName}]`}</Text>
-                {groupTests.map(test => (
+                {groupTests.map((test) => (
                   <TestCard
                     key={`test-${test.id}-${test.groupId}`}
                     test={test}
@@ -234,6 +228,17 @@ const StudyResult = () => {
           </View>
         )}
       </ScrollView>
+
+      <FilterModal
+        visible={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        filters={filters}
+        setFilters={setFilters}
+        groups={groups}
+        tests={[...new Set(allTests.map((test) => test.name))]}
+        clearFilters={clearFilters}
+        currentDate={currentDate || new Date().toISOString().split('T')[0]}
+      />
     </View>
   );
 };
@@ -253,41 +258,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   countsContainer: {
+    marginBottom: 12,
+  },
+  countsLabelsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#f1f5f9',
+    marginBottom: 8,
+  },
+  countsValuesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  countLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+  },
+  countValueContainer: {
+    flex: 1,
     paddingVertical: 8,
     borderRadius: 6,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  countsText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
-  },
-  datePickerContainer: {
-    marginBottom: 12,
-  },
-  filterContainer: {
-    marginBottom: 6,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  dropdownContainer: {
-    flex: 1,
-  },
-  dropdownLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 4,
+  countValue: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,

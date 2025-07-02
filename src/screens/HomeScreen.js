@@ -4,21 +4,18 @@ import styled from 'styled-components/native';
 import { AppContext } from '../../context/AppContext';
 import { ProjectContext } from '../../context/ProjectContext';
 import { getCompanyInfo, getProfileInfo } from '../services/authServices';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+const scaleWidth = (size) => (width / 375) * size;
+const scaleHeight = (size) => (height / 812) * size;
 
 const Container = styled.View`
   background-color: #f5f5f5;
 `;
 
-const GradientBackground = styled(LinearGradient).attrs({
-  colors: ['#c2fbcd', '#ffdde1'],
-  start: { x: 0, y: 0 },
-  end: { x: 1, y: 1 },
-})`
+const GradientBackground = styled.View`
   align-items: center;
   height: 100%;
 `;
@@ -28,9 +25,11 @@ const CompanyContainer = styled.View`
   flex-direction: row;
   width: 100%;
   padding: 10px;
-  background-color: #c2fbcd;
+  background-color: #5ed2ce;
   align-items: center;
   gap: 20px;
+  border-bottom-left-radius: ${scaleWidth(30)}px;
+  border-bottom-right-radius: ${scaleWidth(30)}px;
 `;
 
 const CompanyTextContainer = styled.View`
@@ -67,7 +66,7 @@ const CompanyName = styled.Text`
 const SubHeader = styled.Text`
   font-size: 16px;
   margin-bottom: 20px;
-  color: #555555;
+  color: #333333;
 `;
 
 const NewHomeScreen = () => {
@@ -93,7 +92,7 @@ const NewHomeScreen = () => {
         console.log('Error fetching company info:', error);
       });
     
-    fetchAllData()
+    fetchAllData();
   }, []);
 
   const handleSelectProject = (ref_num) => {
@@ -103,36 +102,68 @@ const NewHomeScreen = () => {
     });
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'in progress': return '#ea580c';
-      case 'completed': return '#16a34a';
-      default: return '#6366f1';
-    }
-  };
+  const renderProjectItem = ({ item }) => {
+    const getStatusColor = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'completed': return '#4CAF50';
+        case 'in progress': return '#FF9800';
+        default: return '#9E9E9E';
+      }
+    };
 
-  const renderProjectItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.item, { borderLeftColor: getStatusColor(item.status) }]}
-      onPress={() => handleSelectProject(item.ref_num)}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-        <Text style={styles.status}>{item.status}</Text>
-      </View>
+    const getStatusBackgroundColor = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'completed': return '#E8F5E9';
+        case 'in progress': return '#FFF3E0';
+        default: return '#F5F5F5';
+      }
+    };
 
-      <View style={styles.itemContent}>
-        <View style={styles.projectInfo}>
-          <Text style={styles.ref}>{projectTitles[item.ref_num] || item.ref_num}</Text>
-          <Text style={styles.label}>{item.ref_num}</Text>
+    const getStatusTextColor = (status) => {
+      switch (status?.toLowerCase()) {
+        case 'completed': return '#2E7D32';
+        case 'in progress': return '#EF6C00';
+        default: return '#424242';
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.item,
+          { borderLeftColor: getStatusColor(item.status) }
+        ]}
+        onPress={() => handleSelectProject(item.ref_num)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.statusBadgeContainer}>
+          <View style={[
+            styles.statusBadge,
+            { 
+              backgroundColor: getStatusBackgroundColor(item.status),
+              borderColor: getStatusColor(item.status),
+            }
+          ]}>
+            <Text style={[
+              styles.statusText,
+              { color: getStatusTextColor(item.status) }
+            ]}>
+              {item.status}
+            </Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+
+        <View style={styles.itemContent}>
+          <Text style={styles.label}>{item.ref_num}</Text>
+          <Text style={styles.ref}>{projectTitles[item.ref_num] || item.ref_num}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Container>
-      <StatusBar style="dark" backgroundColor="#c2fbcd" />
+      <StatusBar style="dark" backgroundColor="#5ed2ce" />
       <GradientBackground>
         <CompanyContainer>
           <LogoContainer>
@@ -175,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 12,
     paddingHorizontal: 16,
-    flex: 1, // ✅ ensures full height
+    flex: 1,
     width: '100%',
   },
   loaderContainer: {
@@ -218,40 +249,43 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderLeftWidth: 4,
     position: 'relative',
+    minHeight: 100
   },
-  itemContent: {
-    marginTop: 18,
+  statusBadgeContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 1,
   },
-  projectInfo: {
-    flex: 1,
+  statusBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+   itemContent: {
+    marginTop: 0,
+    flexDirection: 'column',
   },
   ref: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 4,
+    marginTop: 4, 
+    marginBottom: 0, 
   },
   label: {
     fontSize: 13,
     color: '#64748b',
     fontWeight: '500',
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 70,
-    alignItems: 'center',
-  },
-  status: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: 4, 
   },
 });
 
