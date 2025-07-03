@@ -1,47 +1,47 @@
 {
   "expo": {
-    "name": "Lab Management",
-    "slug": "atomwalk-lab-management",
+    "name": "Atomwalk Lab GLP Study",
+    "slug": "atomwalkglp",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/adaptive-icons.png",
+    "icon": "./assets/images/adaptive-icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "versionCode": 1,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icons.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.atomwalk.atomwalklabmanagement"
+      "package": "com.atomwalk.atomwalkglp"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/adaptive-icons.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/adaptive-icons.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
       "eas": {
-        "projectId": "406e6076-e603-4cc4-8fc5-f2ce18356c5a"
+        "projectId": "e0653a8e-7332-46a4-b964-64c99e8f711b"
       }
     },
     "owner": "atomwalk"

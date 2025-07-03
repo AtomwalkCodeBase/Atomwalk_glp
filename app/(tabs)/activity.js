@@ -1,19 +1,12 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import ActivityScreen from '../../src/screens/AllActivity';
-import ManagerActivityScreen from '../../src/screens/ManagerActivityScreen';
 import { getProfileInfo } from '../../src/services/authServices';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 
 const Activity = () => {
   const params = useLocalSearchParams(); // Get search params from URL
   const [callType, setCallType] = useState(params.call_type || 'PROJECT'); // Default to 'PROJECT'
-
-  const [isManager, setIsManager] = useState(false);
-  const [profile, setProfile] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -45,11 +38,7 @@ const Activity = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {isManager ? (
-        <ManagerActivityScreen activityType={callType} setCallType={setCallType} user={user} />
-      ) : (
         <ActivityScreen data="PENDING" />
-      )}
     </View>
   );
 };

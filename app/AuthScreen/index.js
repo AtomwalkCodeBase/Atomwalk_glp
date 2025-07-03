@@ -23,6 +23,7 @@ import axios from 'axios';
 import { getCompanyInfo } from '../../src/services/authServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { publicAxiosRequest } from '../../src/services/HttpMethod';
+import Constants from 'expo-constants';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,6 +43,7 @@ const LoginScreen = () => {
     const [keyboardStatus, setKeyboardStatus] = useState(false);
     const isLoginDisabled = !username || !password;
     // const isFormValid = username.trim() !== '' && password.trim() !== '';
+    const appVersion = Constants.expoConfig?.version || '0.0.1';
 
 
 
@@ -165,7 +167,7 @@ useEffect(() => {
                 setErrorMessage('Invalid User id or Password');
             }
         } catch (error) {
-            console.error('API call error:', error);
+            // console.error('API call error:', error);
             setErrorMessage('Invalid User id or Password');
         }
     };
@@ -269,7 +271,7 @@ useEffect(() => {
                 </MainContent>
 
             <Footer style={styles.fixedFooter}>
-              <FooterText>Version Code: 1.0.12</FooterText>
+              <FooterText>Version Code: {appVersion}</FooterText>
             </Footer>
           </Container>
         {/* </KeyboardAvoidingView> */}

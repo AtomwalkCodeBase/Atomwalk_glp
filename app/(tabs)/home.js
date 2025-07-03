@@ -1,15 +1,11 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import HomeScreen from '../../src/screens/HomeScreen';
 import PinPopup from '../../src/screens/PinPopup';
 import { getProfileInfo } from '../../src/services/authServices';
-import ManagerHomePage from '../../src/screens/ManagerHomeScreen';
-import { Text } from 'react-native';
 
 const Home = () => {
-  const [isManager, setIsManager] = useState(false);
-  const [profile, setProfile] = useState([]);
-  const [loading, setLoading] = useState(true);
+  
   useEffect(() => {
     getProfileInfo()
       .then((res) => {
@@ -25,7 +21,7 @@ const Home = () => {
 
   return (
     <SafeAreaView>
-      {isManager ? <ManagerHomePage /> : <HomeScreen />}
+      <HomeScreen />
       <PinPopup />
     </SafeAreaView>
   );
