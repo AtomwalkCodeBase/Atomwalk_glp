@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 // Styled components
 const GradientBackground = styled.View`
   flex: 1;
-  background-color: #f5f5f5;
+  background-color: #f8fffe;
   align-items: center;
   height: 100%;
 `;

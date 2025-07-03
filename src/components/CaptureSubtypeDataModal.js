@@ -215,7 +215,7 @@ const CaptureSubtypeDataModal = ({
           };
 
           console.log('Payload:', payload);
-          // await postGLPTestData(payload);
+          await postGLPTestData(payload);
           submittedCount++;
         }
       }

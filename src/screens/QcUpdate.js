@@ -14,7 +14,7 @@ const { width } = Dimensions.get('window');
 
 // Styled Components
 const GradientBackground = styled.View`
-  background-color: #f5f5f5;
+  background-color: #f8fffe;
   flex: 1;
 `;
 

@@ -16,22 +16,6 @@ const ProjectProvider = ({ children }) => {
   const [projectTitles, setProjectTitles] = useState({});
   const [completionCache, setCompletionCache] = useState({});
 
-  // Constants in YYYY-MM-DD format
-  const START_DATE_STR = '2025-05-22';
-  const END_DATE_STR = '2025-07-20';
-
-  useEffect(() => {
-  const fetchProjects = async () => {
-    try {
-      const projects = await getGLPProjectList();
-      console.log(projects.data); // Do something with the projects
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  };
-
-  fetchProjects();
-}, []);
 
   // Helper functions for date handling
   const getCurrentFormattedIST = () => {
@@ -50,6 +34,7 @@ const ProjectProvider = ({ children }) => {
     return `${yyyy}-${mm}-${dd}`;
   };
 
+  const [projectDates, setProjectDates] = useState({});
   const [currentDate, setCurrentDate] = useState(getCurrentFormattedIST());
 
   const parseDate = (dateStr) => {
@@ -72,9 +57,39 @@ const ProjectProvider = ({ children }) => {
 
   const addDays = (dateStr, days) => {
     const date = parseDate(dateStr);
+    if (!date) return dateStr;
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return formatDate(result);
+  };
+
+  // Fetch and process project dates
+  const fetchProjectDates = async () => {
+    try {
+      const response = await getGLPProjectList();
+      const projectsData = response.data || [];
+      
+      const datesMap = {};
+      projectsData.forEach(project => {
+        const normalizedStart = normalizeTestDate(project.start_date);
+        let normalizedEnd = project.end_date ? normalizeTestDate(project.end_date) : null;
+        
+        if (!normalizedEnd && normalizedStart) {
+          normalizedEnd = addDays(normalizedStart, 30);
+        }
+        
+        datesMap[project.project_code] = {
+          startDate: normalizedStart,
+          endDate: normalizedEnd
+        };
+      });
+      
+      setProjectDates(datesMap);
+      return datesMap;
+    } catch (error) {
+      console.error('Error fetching project dates:', error);
+      return {};
+    }
   };
 
   // Other helper functions
@@ -97,37 +112,43 @@ const ProjectProvider = ({ children }) => {
   }, []);
 
   const getTestSchedule = (test, currentDateStr) => {
-    const testStartDate = addDays(START_DATE_STR, test.no_of_days || 0);
+    const projectCode = test.project_code;
+    const projectDateInfo = projectDates[projectCode] || {};
+    const projectStartDate = projectDateInfo.startDate || currentDateStr;
+    const projectEndDate = projectDateInfo.endDate || addDays(projectStartDate, 30);
+
+    // Calculate test start date based on frequency
+    let testStartDate = projectStartDate;
+    if (test.test_frequency === 'W' && test.no_of_days && !isNaN(test.no_of_days)) {
+      testStartDate = addDays(projectStartDate, test.no_of_days);
+    }
+
     let scheduleDates = [];
     const frequencyLabel = test.test_frequency_display || 'Unknown';
 
     if (test.test_frequency === 'N' && test.date_schedule) {
+      // Custom date schedule
       scheduleDates = test.date_schedule
         .split(',')
         .map(dateStr => formatDate(new Date(dateStr.trim())))
-        .filter(dateStr => dateStr >= START_DATE_STR && dateStr <= END_DATE_STR);
+        .filter(dateStr => dateStr >= projectStartDate && dateStr <= projectEndDate);
     } else {
       switch (test.test_frequency) {
-        case 'D':
-          for (let date = testStartDate; date <= END_DATE_STR; date = addDays(date, 1)) {
+        case 'D': // Daily - from project start date to end date
+          for (let date = projectStartDate; date <= projectEndDate; date = addDays(date, 1)) {
             scheduleDates.push(date);
           }
           break;
-        case 'W':
-          for (let date = testStartDate; date <= END_DATE_STR; date = addDays(date, 7)) {
+        case 'W': // Weekly - from calculated start date to end date
+          for (let date = testStartDate; date <= projectEndDate; date = addDays(date, 7)) {
             scheduleDates.push(date);
           }
           break;
-        case 'O':
-          if (testStartDate >= START_DATE_STR && testStartDate <= END_DATE_STR) {
-            scheduleDates.push(testStartDate);
-          }
+        case 'O': // Once - at project end date
+          scheduleDates.push(projectEndDate);
           break;
-        case 'B':
-          const beforeDate = addDays(testStartDate, -1);
-          if (beforeDate >= START_DATE_STR && beforeDate <= END_DATE_STR) {
-            scheduleDates.push(beforeDate);
-          }
+        case 'B': // Baseline - at project start date
+          scheduleDates.push(projectStartDate);
           break;
         default:
           break;
@@ -151,6 +172,8 @@ const ProjectProvider = ({ children }) => {
       scheduleDates,
       frequencyLabel,
       testStartDate,
+      projectStartDate,
+      projectEndDate,
     };
   };
 
@@ -165,7 +188,7 @@ const ProjectProvider = ({ children }) => {
     const result = [];
 
     tests.forEach(test => {
-      const { scheduleDates, frequencyLabel, testStartDate } = getTestSchedule(test, dateStr);
+      const { scheduleDates, frequencyLabel, testStartDate, projectStartDate, projectEndDate } = getTestSchedule(test, dateStr);
       if (scheduleDates.includes(dateStr)) {
         groups.forEach(group => {
           result.push({
@@ -176,6 +199,8 @@ const ProjectProvider = ({ children }) => {
             frequencyLabel,
             scheduleDate: dateStr,
             testStartDate,
+            projectStartDate,
+            projectEndDate,
             species: group.species
           });
         });
@@ -326,6 +351,9 @@ const ProjectProvider = ({ children }) => {
     setErrors({});
 
     try {
+      // First fetch project dates
+      await fetchProjectDates();
+      
       let allActivities = [];
       try {
         const projectRes = await getActivityList();
@@ -431,6 +459,23 @@ const ProjectProvider = ({ children }) => {
     }
   };
 
+  // Get default dates for backward compatibility
+  const getDefaultDates = () => {
+    const dates = Object.values(projectDates);
+    if (dates.length > 0) {
+      return {
+        startDate: dates[0].startDate || currentDate,
+        endDate: dates[0].endDate || addDays(currentDate, 30)
+      };
+    }
+    return {
+      startDate: currentDate,
+      endDate: addDays(currentDate, 30)
+    };
+  };
+
+  const defaultDates = getDefaultDates();
+
   const contextValue = {
     projects,
     activitiesByProject,
@@ -451,8 +496,9 @@ const ProjectProvider = ({ children }) => {
     getCompletionStatus,
     getAnimalCounts,
     updateCompletionCache,
-    START_DATE: START_DATE_STR,
-    END_DATE: END_DATE_STR,
+    projectDates, // Project-specific dates
+    START_DATE: defaultDates.startDate, // For backward compatibility
+    END_DATE: defaultDates.endDate,    // For backward compatibility
     currentDate,
     setCurrentDate,
     fetchAllData,

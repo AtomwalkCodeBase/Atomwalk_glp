@@ -15,7 +15,7 @@ import InfoCards from '../components/InfoCards';
 const { width } = Dimensions.get('window');
 
 const Container = styled.View`
-background-color: #f5f5f5;
+background-color: #f8fffe;
 `;
 
 const GradientBackground = styled(LinearGradient).attrs({

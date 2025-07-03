@@ -11,7 +11,7 @@ import { getActivityList } from '../services/productServices';
 const { width } = Dimensions.get('window');
 
 const GradientBackground = styled.View`
-    background-color: #f5f5f5;
+    background-color: #f8fffe;
     align-items: center;
     height: 100%;
 `;

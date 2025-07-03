@@ -1,18 +1,19 @@
 import { useContext, useState, useEffect } from 'react';
-import { View, Text, FlatList, Dimensions, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'; 
+import { View, Text, FlatList, Dimensions, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import styled from 'styled-components/native';
 import { AppContext } from '../../context/AppContext';
 import { ProjectContext } from '../../context/ProjectContext';
 import { getCompanyInfo, getProfileInfo } from '../services/authServices';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 const scaleWidth = (size) => (width / 375) * size;
 const scaleHeight = (size) => (height / 812) * size;
 
 const Container = styled.View`
-  background-color: #f5f5f5;
+  background-color: #f8fffe;
 `;
 
 const GradientBackground = styled.View`
@@ -71,7 +72,7 @@ const SubHeader = styled.Text`
 
 const NewHomeScreen = () => {
   const router = useRouter();
-  const { projects, projectTitles, loading, fetchAllData } = useContext(ProjectContext);
+  const { projects, projectTitles, loading, fetchAllData, projectDates, formatDate } = useContext(ProjectContext);
   const [company, setCompany] = useState({});
   const [profile, setProfile] = useState([]);
 
@@ -91,7 +92,7 @@ const NewHomeScreen = () => {
       .catch((error) => {
         console.log('Error fetching company info:', error);
       });
-    
+
     fetchAllData();
   }, []);
 
@@ -127,6 +128,10 @@ const NewHomeScreen = () => {
       }
     };
 
+    const projectDate = projectDates[item.ref_num] || {};
+    const startDate = formatDate(projectDate.startDate) || 'N/A';
+    const endDate = formatDate(projectDate.endDate) || 'N/A';
+
     return (
       <TouchableOpacity
         style={[
@@ -139,7 +144,7 @@ const NewHomeScreen = () => {
         <View style={styles.statusBadgeContainer}>
           <View style={[
             styles.statusBadge,
-            { 
+            {
               backgroundColor: getStatusBackgroundColor(item.status),
               borderColor: getStatusColor(item.status),
             }
@@ -156,6 +161,17 @@ const NewHomeScreen = () => {
         <View style={styles.itemContent}>
           <Text style={styles.label}>{item.ref_num}</Text>
           <Text style={styles.ref}>{projectTitles[item.ref_num] || item.ref_num}</Text>
+          <View style={styles.dateContainer}>
+            <View style={styles.dateItem}>
+              <Ionicons name="calendar-outline" size={16} color="#64748b" style={styles.calendarIcon} />
+              <Text style={styles.dateText}>Start: {startDate}</Text>
+            </View>
+            <View style={styles.spacer} />
+            <View style={styles.dateItem}>
+              <Ionicons name="calendar-outline" size={16} color="#64748b" style={styles.calendarIcon} />
+              <Text style={styles.dateText}>End: {endDate}</Text>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -183,7 +199,7 @@ const NewHomeScreen = () => {
 
           {loading ? (
             <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color="#6366f1" />
+              < ActivityIndicator size="large" color="#6366f1" />
             </View>
           ) : (
             <FlatList
@@ -203,7 +219,7 @@ const NewHomeScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fffe',
     borderRadius: 12,
     paddingHorizontal: 16,
     flex: 1,
@@ -238,7 +254,7 @@ const styles = StyleSheet.create({
   },
   item: {
     backgroundColor: '#ffffff',
-    marginBottom: 12,
+    marginVertical: 8,
     borderRadius: 12,
     paddingVertical: 18,
     paddingHorizontal: 20,
@@ -249,7 +265,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderLeftWidth: 4,
     position: 'relative',
-    minHeight: 100
+    minHeight: 120
   },
   statusBadgeContainer: {
     position: 'absolute',
@@ -270,7 +286,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-   itemContent: {
+  itemContent: {
     marginTop: 0,
     flexDirection: 'column',
   },
@@ -278,14 +294,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginTop: 4, 
-    marginBottom: 0, 
+    marginTop: 4,
+    marginBottom: 8,
   },
   label: {
     fontSize: 13,
     color: '#64748b',
     fontWeight: '500',
-    marginBottom: 4, 
+    marginBottom: 4,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  dateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  spacer: {
+    flex: 1,
+  },
+  calendarIcon: {
+    marginRight: 6,
+  },
+  dateText: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
 });
 

@@ -357,7 +357,7 @@ const SafeAreaContainer = styled(SafeAreaView)`
 
 const Container = styled.View`
   flex: 1;
-  background-color: #f5f5f5;
+  background-color: #f8fffe;
 `;
 
 const Header = styled.View`

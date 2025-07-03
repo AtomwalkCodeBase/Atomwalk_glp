@@ -13,74 +13,110 @@ const FilterModal = ({
   tests,
   clearFilters,
   currentDate,
-}) => (
-  <Modal visible={visible} transparent animationType="slide">
-    <TouchableOpacity
-      activeOpacity={1}
-      style={styles.modalOverlay}
-      onPress={onClose}
-    >
+  minDate = undefined, 
+  maxDate = undefined
+}) => {
+  const [tempFilters, setTempFilters] = React.useState(filters);
+
+  React.useEffect(() => {
+    if (visible) {
+      setTempFilters(filters);
+    }
+  }, [visible, filters]);
+
+  const handleApply = () => {
+    setFilters(tempFilters);
+    onClose();
+  };
+
+   const handleClear = () => {
+    const defaultFilters = {
+      startDate: currentDate,
+      group: 'All',
+      test: 'All'
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
       <TouchableOpacity
         activeOpacity={1}
-        style={styles.modalContent}
-        onPress={() => {}}
+        style={styles.modalOverlay}
+        onPress={onClose}
       >
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Filter Tests</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.formGroup}>
-            <Text style={styles.formLabel}>Date</Text>
-            <DatePicker
-              label="Select Date"
-              cDate={filters.startDate}
-              setCDate={(value) => setFilters((prev) => ({ ...prev, startDate: value }))}
-            />
-          </View>
-          <View style={styles.formGroup}>
-            <DropdownPicker
-              label="Group"
-              data={[
-                { label: 'All', value: 'All' },
-                ...groups.map((group) => ({
-                  label: group.study_type,
-                  value: group.study_type,
-                })),
-              ]}
-              value={filters.group}
-              setValue={(value) => setFilters((prev) => ({ ...prev, group: value }))}
-            />
-          </View>
-          <View style={styles.formGroup}>
-            <DropdownPicker
-              label="Test"
-              data={[
-                { label: 'All', value: 'All' },
-                ...tests.map((test) => ({
-                  label: test,
-                  value: test,
-                })),
-              ]}
-              value={filters.test}
-              setValue={(value) => setFilters((prev) => ({ ...prev, test: value }))}
-            />
-          </View>
-          <View style={styles.filterButtons}>
-            <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
-              <Text style={styles.clearButtonText}>Clear Filters</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.applyButton} onPress={onClose}>
-              <Text style={styles.applyButtonText}>Apply Filters</Text>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalContent}
+          onPress={() => {}}
+        >
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filter Tests</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
-        </ScrollView>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Date</Text>
+              <DatePicker
+                label="Select Date"
+                cDate={tempFilters.startDate}
+                setCDate={(value) => setTempFilters(prev => ({ ...prev, startDate: value }))}
+                minDate={minDate} // Will be undefined if not provided
+                maxDate={maxDate} // Will be undefined if not provided
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <DropdownPicker
+                label="Group"
+                data={[
+                  { label: 'All', value: 'All' },
+                  ...groups.map((group) => ({
+                    label: group.study_type,
+                    value: group.study_type,
+                  })),
+                ]}
+                value={tempFilters.group}
+                setValue={(value) => setTempFilters(prev => ({ ...prev, group: value }))}
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <DropdownPicker
+                label="Test"
+                data={[
+                  { label: 'All', value: 'All' },
+                  ...tests.map((test) => ({
+                    label: test,
+                    value: test,
+                  })),
+                ]}
+                value={tempFilters.test}
+                setValue={(value) => setTempFilters(prev => ({ ...prev, test: value }))}
+              />
+            </View>
+            <View style={styles.filterButtons}>
+              <TouchableOpacity 
+                style={styles.clearButton} 
+                onPress={ handleClear}
+              >
+                <Text style={styles.clearButtonText}>Clear Filters</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.applyButton} 
+                onPress={handleApply}
+              >
+                <Text style={styles.applyButtonText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
   modalOverlay: {
@@ -125,25 +161,31 @@ const styles = StyleSheet.create({
   clearButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#3d9e56',
+    borderColor: '#088f8f',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   clearButtonText: {
-    color: '#3d9e56',
+    color: '#088f8f',
     fontSize: 16,
     fontWeight: '600',
   },
   applyButton: {
     flex: 1,
-    backgroundColor: '#3d9e56',
+    backgroundColor: '#088f8f',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   applyButtonText: {
-    color: '#fff',
+    color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TextInput, BackHandler } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
+import DetailHeader from '../components/DetailHeader';
 import { ProjectContext } from '../../context/ProjectContext';
 import { CircleButton } from '../components/old_components/Button';
 import SubmitButton from '../components/SubmitButton';
@@ -10,7 +11,6 @@ import { postGLPTestData } from '../services/productServices';
 import ErrorModal from '../components/ErrorModal';
 import SuccessModal from '../components/SuccessModal';
 import ConfirmationModal from '../components/ConfirmationModal';
-import CaptureDataHeader from '../components/CaptureDataHeader';
 import CaptureSubtypeDataModal from '../components/CaptureSubtypeDataModal';
 
 const CaptureData = () => {
@@ -282,7 +282,7 @@ const CaptureData = () => {
           };
 
           console.log("Payload", payload);
-          // await postGLPTestData(payload);
+          await postGLPTestData(payload);
 
           setExistingData(prev => ({ ...prev, [ratId]: true }));
           submittedCount++;
@@ -390,27 +390,28 @@ const CaptureData = () => {
   return (
     <View style={styles.container}>
       <HeaderComponent headerTitle="Capture Data" onBackPress={handleBackPress} />
-
-      <CaptureDataHeader
-        projectTitle={projectTitle}
-        testName={test.name}
-        groupType={group.study_type}
-        scheduleDate={scheduleDate}
-        completionStatus={completionStatus}
-      />
-
+      <View style={styles.headerContainer}>
+        <DetailHeader
+          projectTitle={projectTitle}
+          testName={test.name}
+          groupType={group.study_type}
+          scheduleDate={scheduleDate}
+          completionStatus={completionStatus}
+          style={styles.detailHeader}
+        />
+      </View>
       {loading && (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#0288d1" />
           <Text style={styles.loaderText}>Loading data...</Text>
         </View>
       )}
-
       {!loading && (
         <>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
           >
             <View style={styles.ratsContainer}>
               {rats.map(ratId => {
@@ -554,11 +555,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
+  headerContainer: {
+    zIndex: 4,
+    elevation: 2,
+    backgroundColor: '#f8fafc',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  detailHeader: {
+    zIndex: 4,
+    elevation: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
   scrollContainer: {
     paddingBottom: 80,
   },
   scrollView: {
     flex: 1,
+    zIndex: 0,
   },
   ratsContainer: {
     padding: 15,

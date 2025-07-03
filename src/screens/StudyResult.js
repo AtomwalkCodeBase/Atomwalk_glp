@@ -2,6 +2,7 @@ import { useContext, useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import HeaderComponent from '../components/HeaderComponent';
+import DetailHeader from '../components/DetailHeader';
 import { ProjectContext } from '../../context/ProjectContext';
 import TestCard from '../components/TestCard';
 import { StyleSheet } from 'react-native';
@@ -19,11 +20,18 @@ const StudyResult = () => {
     getAnimalCounts,
     currentDate,
     setCurrentDate,
+    projectDates,
   } = useContext(ProjectContext);
+
   const projectTitle = projectTitles[ref_num] || ref_num;
 
   const groups = groupsByProject[ref_num] || [];
   const allTests = testsByProject[ref_num] || [];
+
+  // Get project-specific dates or fallback to current date
+  const projectDateInfo = projectDates[ref_num] || {};
+  const projectStartDate = projectDateInfo.startDate || currentDate;
+  const projectEndDate = projectDateInfo.endDate || addDays(currentDate, 30);
 
   const [filters, setFilters] = useState({
     startDate: currentDate || new Date().toISOString().split('T')[0],
@@ -59,6 +67,7 @@ const StudyResult = () => {
       try {
         const fetchedTests = getTestsForDate(ref_num, filters.startDate);
 
+        // Enhance tests with completion status
         const testsWithCompletion = await Promise.all(
           fetchedTests.map(async (test) => {
             const completion = await getCompletionStatus(
@@ -68,7 +77,12 @@ const StudyResult = () => {
               test.scheduleDate,
               forceRefresh
             );
-            return { ...test, completion };
+            return { 
+              ...test, 
+              completion,
+              projectStartDate,
+              projectEndDate
+            };
           })
         );
 
@@ -90,7 +104,7 @@ const StudyResult = () => {
         setLoading(false);
       }
     },
-    [ref_num, filters.startDate, getTestsForDate, getCompletionStatus, getAnimalCounts]
+    [ref_num, filters.startDate, getTestsForDate, getCompletionStatus, getAnimalCounts, projectStartDate, projectEndDate]
   );
 
   useFocusEffect(
@@ -158,40 +172,18 @@ const StudyResult = () => {
         icon1Name="filter"
         icon1OnPress={() => setShowFilterModal(true)}
       />
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.projectName}>{`Project: ${projectTitle}`}</Text>
-
-        <View style={styles.countsContainer}>
-          {/* Labels Row */}
-          <View style={styles.countsLabelsRow}>
-            <Text style={[styles.countLabel, { color: '#2196F3' }]}>Total</Text>
-            <Text style={[styles.countLabel, { color: '#2E7D32' }]}>Completed</Text>
-            <Text style={[styles.countLabel, { color: '#EF6C00' }]}>Pending</Text>
-          </View>
-          
-          {/* Values Row */}
-          <View style={styles.countsValuesRow}>
-            <View style={[styles.countValueContainer, { backgroundColor: '#E3F2FD' }]}>
-              <Text style={[styles.countValue, { color: '#1565C0' }]}>
-                {animalCounts.totalAnimals}
-              </Text>
-            </View>
-            <View style={[styles.countValueContainer, { backgroundColor: '#E8F5E9' }]}>
-              <Text style={[styles.countValue, { color: '#2E7D32' }]}>
-                {animalCounts.completedAnimals}
-              </Text>
-            </View>
-            <View style={[styles.countValueContainer, { backgroundColor: '#FFF3E0' }]}>
-              <Text style={[styles.countValue, { color: '#EF6C00' }]}>
-                {animalCounts.pendingAnimals}
-              </Text>
-            </View>
-          </View>
-        </View>
+      <View style={styles.headerContainer}>
+        <DetailHeader 
+          projectTitle={projectTitle}
+          animalCounts={animalCounts}
+          style={styles.detailHeader}
+        />
       </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+      >
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#0288d1" />
@@ -243,55 +235,37 @@ const StudyResult = () => {
   );
 };
 
+// Add this helper function if not already available
+function addDays(dateStr, days) {
+  const date = new Date(dateStr);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  sectionHeader: {
-    padding: 16,
-    backgroundColor: '#fff',
+  headerContainer: {
+    zIndex: 5,
+    elevation: 4,
+    backgroundColor: '#f8fafc',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+  },
+  detailHeader: {
+    zIndex: 5,
+    elevation: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  projectName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 16,
-  },
-  countsContainer: {
-    marginBottom: 12,
-  },
-  countsLabelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  countsValuesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  countLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  countValueContainer: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
   scrollView: {
     flex: 1,
+    zIndex: 0,
+  },
+  scrollViewContent: {
+    paddingTop: 0, 
   },
   loadingContainer: {
     flex: 1,

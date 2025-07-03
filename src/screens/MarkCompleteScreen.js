@@ -7,12 +7,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getActivitiQcData, postActivtyInventory } from '../services/productServices';
 import SubmitButton from '../components/SubmitButton';
 import { colors } from '../Styles/appStyle';
+import EmptyMessage from '../components/EmptyMessage';
 
 const { width, height } = Dimensions.get('window');
 
 // Styled Components
 const GradientBackground = styled.View`
-  background-color: #f5f5f5;
+  background-color: #f8fffe;
   flex: 1;
 `;
 
@@ -178,7 +179,10 @@ const MarkCompleteScreen = (props) => {
         <HeaderComponent headerTitle="Mark Activity Complete" onBackPress={navigation.goBack} />
         <ButtonContainer>
           <Container>
-            {qcData.map((item, index) => (
+            {qcData.length === 0 ? (
+              <EmptyMessage data="Mark as Completed" />
+
+            ) : (qcData.map((item, index) => (
               <Card key={index}>
                 <BoldText>{item.qc_name}</BoldText>
                 <SubText>Permissible Value: {item.qc_value}</SubText>
@@ -194,7 +198,7 @@ const MarkCompleteScreen = (props) => {
                   textColor="white"
                 /> */}
               </Card>
-            ))}
+            )))}
           </Container>
           <ActionButton onPress={handleMarkAsCompleted}>
             <ButtonText>{isCompleted ? 'Unmark as Completed' : 'Mark as Completed'}</ButtonText>

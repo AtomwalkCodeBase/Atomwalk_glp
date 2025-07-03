@@ -26,46 +26,44 @@ const AnimalDetails = () => {
     return `${day}/${month}/${year}`;
   };
 
-  // Render animal card with gender-specific styling
-  const renderAnimalCard = (animal) => {
+  // Render animal card with modern design
+  const renderAnimalCard = (animal, index) => {
     const isMale = animal.a_type === 'M';
-    const genderColor = isMale ? '#1e88e5' : '#d81b60';
-    const genderBgColor = isMale ? '#e3f2fd' : '#fce4ec';
 
     return (
-      <View style={[
-        styles.animalCard,
-        { backgroundColor: genderBgColor }
-      ]}>
-        <View style={styles.animalHeader}>
-          <Text style={[
-            styles.animalId,
-            { color: genderColor }
-          ]}>
-            {animal.a_id}
-          </Text>
-          <Text style={[
-            styles.animalGender,
-            { color: genderColor }
-          ]}>
-            {isMale ? '♂ Male' : '♀ Female'}
-          </Text>
+      <View style={styles.animalCard}>
+        <View style={styles.cardHeader}>
+          <View style={styles.animalBadge}>
+            <Text style={styles.animalNumber}>#{String(index + 1).padStart(2, '0')}</Text>
+          </View>
+          <View style={styles.animalInfo}>
+            <View style={styles.animalIdRow}>
+              <Text style={styles.animalId}>{animal.a_id}</Text>
+              <View style={styles.genderContainer}>
+                <Text style={styles.genderIcon}>{isMale ? '♂' : '♀'}</Text>
+                <Text style={styles.genderText}>{isMale ? 'Male' : 'Female'}</Text>
+              </View>
+            </View>
+          </View>
         </View>
-        <View style={styles.animalDetails}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Source:</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.detailsGrid}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Source</Text>
             <Text style={styles.detailValue}>{animal.source || 'N/A'}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Strain:</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Strain</Text>
             <Text style={styles.detailValue}>{animal.strain || 'N/A'}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Serial:</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Serial</Text>
             <Text style={styles.detailValue}>{animal.a_srl_num || 'N/A'}</Text>
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date:</Text>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Date</Text>
             <Text style={styles.detailValue}>{formatDate(animal.source_date)}</Text>
           </View>
         </View>
@@ -76,67 +74,79 @@ const AnimalDetails = () => {
   // Combine animals for single FlatList with section headers
   const animalData = [
     ...(maleAnimals.length > 0 ? [
-      { 
-        type: 'header', 
-        id: 'male-header', 
-        label: 'Male Animals', 
+      {
+        type: 'header',
+        id: 'male-header',
+        label: 'Male Animals',
         count: maleAnimals.length,
-        backgroundColor: '#bbdefb' // Light blue header
+        icon: '♂'
       },
-      ...maleAnimals.map(animal => ({ ...animal, type: 'animal' }))
+      ...maleAnimals.map((animal, index) => ({ ...animal, type: 'animal', displayIndex: index }))
     ] : []),
     ...(femaleAnimals.length > 0 ? [
-      { 
-        type: 'header', 
-        id: 'female-header', 
-        label: 'Female Animals', 
+      {
+        type: 'header',
+        id: 'female-header',
+        label: 'Female Animals',
         count: femaleAnimals.length,
-        backgroundColor: '#f8bbd0' // Light pink header
+        icon: '♀'
       },
-      ...femaleAnimals.map(animal => ({ ...animal, type: 'animal' }))
+      ...femaleAnimals.map((animal, index) => ({ ...animal, type: 'animal', displayIndex: index }))
     ] : [])
   ];
 
   const renderItem = ({ item }) => {
     if (item.type === 'header') {
       return (
-        <View style={[
-          styles.sectionHeaderContainer,
-          { backgroundColor: item.backgroundColor }
-        ]}>
-          <Text style={styles.sectionHeaderText}>
-            {item.label} ({item.count})
-          </Text>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionHeaderLeft}>
+            <View style={styles.sectionIcon}>
+              <Text style={styles.sectionIconText}>{item.icon}</Text>
+            </View>
+            <Text style={styles.sectionTitle}>{item.label}</Text>
+          </View>
+          <View style={styles.sectionCount}>
+            <Text style={styles.sectionCountText}>{item.count}</Text>
+          </View>
         </View>
       );
     }
-    return renderAnimalCard(item);
+    return renderAnimalCard(item, item.displayIndex);
   };
 
   return (
     <View style={styles.container}>
       <HeaderComponent headerTitle="Animal Details" onBackPress={() => router.back()} />
 
-      <DetailHeader
-        projectTitle={projectTitle}
-        groupType={group?.study_type}
-        doseDetail={group?.dose_detail}
-        speciesType={speciesName}
-        totalAnimals={totalAnimals}
-      />
+      <View style={styles.detailHeaderContainer}>
+        <DetailHeader
+          projectTitle={projectTitle}
+          groupType={group?.study_type}
+          doseDetail={group?.dose_detail}
+          speciesType={speciesName}
+          totalAnimals={totalAnimals}
+        />
+      </View>
 
       {totalAnimals === 0 ? (
         <View style={styles.emptyContainer}>
+          <View style={styles.emptyIcon}>
+            <Text style={styles.emptyIconText}>🔍</Text>
+          </View>
+          <Text style={styles.emptyTitle}>No Animals Found</Text>
           <Text style={styles.emptyText}>No animals assigned to this group</Text>
         </View>
       ) : (
-        <FlatList
-          data={animalData}
-          keyExtractor={(item) => item.id || item.a_id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.contentContainer}
-          style={styles.scrollContainer}
-        />
+        <View style={styles.listContainer}>
+          <FlatList
+            data={animalData}
+            keyExtractor={(item) => item.id || item.a_id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.contentContainer}
+            style={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
       )}
     </View>
   );
@@ -145,8 +155,20 @@ const AnimalDetails = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8fffe',
   },
+  
+  detailHeaderContainer: {
+    zIndex: 10,
+    elevation: 10,
+    position: 'relative',
+  },
+    listContainer: {
+    flex: 1,
+    zIndex: 1,
+    elevation: 1,
+  },
+  
   scrollContainer: {
     flex: 1,
   },
@@ -154,72 +176,179 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  sectionHeaderContainer: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  sectionHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  animalCard: {
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  animalHeader: {
+
+  // Section Header Styles
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-    paddingBottom: 8,
+    backgroundColor: '#33B1AF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 16,
+    marginTop: 8,
+    shadowColor: '#5ed2ce',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2, // Reduced elevation
   },
-  animalId: {
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionIcon: {
+    width: 28,
+    height: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  sectionIconText: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#ffffff',
   },
-  animalGender: {
+  sectionCount: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  sectionCountText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+
+  animalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e8f8f7',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2, // Reduced elevation
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  animalBadge: {
+    backgroundColor: '#33B1AF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  animalNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  animalInfo: {
+    flex: 1,
+  },
+  animalIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  animalId: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2d3748',
+    flex: 1,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  genderIcon: {
+    fontSize: 14,
+    color: '#5ed2ce',
+    marginRight: 4,
+    fontWeight: 'bold',
+  },
+  genderText: {
+    fontSize: 14,
+    color: '#718096',
     fontWeight: '500',
   },
-  animalDetails: {
-    flexDirection: 'column',
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: '#e8f8f7',
+    marginBottom: 12,
   },
-  detailRow: {
+
+  // Details Grid
+  detailsGrid: {
     flexDirection: 'row',
-    marginBottom: 6,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  detailItem: {
+    width: '48%',
+    marginBottom: 8,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#666',
-    width: 80,
+    fontSize: 12,
+    color: '#a0aec0',
     fontWeight: '500',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   detailValue: {
     fontSize: 14,
-    color: '#333',
-    flex: 1,
+    color: '#2d3748',
+    fontWeight: '500',
   },
+
+  // Empty State
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
   },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#f0fdfc',
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyIconText: {
+    fontSize: 32,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#718096',
+    textAlign: 'center',
   },
 });
 
