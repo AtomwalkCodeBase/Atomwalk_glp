@@ -483,7 +483,7 @@ const AlternativeLogin = styled.TouchableOpacity`
 `;
 
 const FingerprintIcon = styled.View`
-  background-color: #a970ff;
+  background-color: #088f8f;
   width: ${scaleWidth(40)}px;
   height: ${scaleWidth(40)}px;
   border-radius: ${scaleWidth(20)}px;
@@ -493,7 +493,7 @@ const FingerprintIcon = styled.View`
 `;
 
 const AlternativeLoginText = styled.Text`
-  color: #a970ff;
+  color: #088f8f;
   font-size: ${scaleWidth(16)}px;
   font-weight: 500;
 `;
