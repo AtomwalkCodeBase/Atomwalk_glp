@@ -177,6 +177,7 @@ const StudyResult = () => {
           projectTitle={projectTitle}
           animalCounts={animalCounts}
           style={styles.detailHeader}
+          scheduleDate={filters.startDate}
         />
       </View>
       <ScrollView 

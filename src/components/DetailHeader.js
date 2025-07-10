@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const DetailHeader = ({
   projectTitle,
@@ -112,9 +113,9 @@ const DetailHeader = ({
         )}
         {scheduleDate && (
           <InfoChip 
-            label="Schedule" 
+            label="Scheduled" 
             value={new Date(scheduleDate).toLocaleDateString()} 
-            icon="📅" 
+            icon={<Ionicons name="calendar-outline" size={16} color="#64748b"/>} 
           />
         )}
       </View>
