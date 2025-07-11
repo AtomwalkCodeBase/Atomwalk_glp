@@ -199,7 +199,7 @@ const NewHomeScreen = () => {
 
           {loading ? (
             <View style={styles.loaderContainer}>
-              < ActivityIndicator size="large" color="#6366f1" />
+              < ActivityIndicator size="large" color="#088f8f" />
             </View>
           ) : (
             <FlatList

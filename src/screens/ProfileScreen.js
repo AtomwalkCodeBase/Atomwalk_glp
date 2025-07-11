@@ -110,60 +110,89 @@ const ProfileScreen = () => {
             </View>
 
             <View style={styles.profileInfo}>
-              <Text
-                style={styles.userName}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {profile?.emp_data?.name || 'Employee'}
-              </Text>
-              <Text
-                style={styles.userNameSmall}
-                numberOfLines={2}
-              >
-                {profile?.user_name}
-              </Text>
-
-              {profile?.emp_data && (
+              {profile?.emp_data ? (
                 <>
-              <View style={styles.roleContainer}>
-                <Text
-                  style={styles.userRole}
-                  numberOfLines={1}
-                >
-                  {userGroup?.name || 'Employee Group'}
-                </Text>
-              </View>
+                  {/* Employee View */}
+                  <Text
+                    style={styles.userName}
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
+                    {profile?.emp_data?.name || 'Employee'}
+                  </Text>
+                  <Text
+                    style={styles.userNameSmall}
+                    numberOfLines={2}
+                  >
+                    {profile?.user_name}
+                  </Text>
+                  <View style={styles.roleContainer}>
+                    <Text
+                      style={styles.userRole}
+                      numberOfLines={1}
+                    >
+                      {userGroup?.name || 'Employee Group'}
+                    </Text>
+                  </View>
 
-              <View style={styles.userMeta}>
-                <View style={styles.metaItem}>
-                  <MaterialCommunityIcons
-                    name="identifier"
-                    size={isSmallScreen ? 14 : 16}
-                    color="#7f8c8d"
-                  />
-                  <Text
-                    style={styles.metaText}
-                    numberOfLines={1}
-                  >
-                    {profile?.emp_data?.emp_id}
+                  <View style={styles.userMeta}>
+                    <View style={styles.metaItem}>
+                      <MaterialCommunityIcons
+                        name="identifier"
+                        size={isSmallScreen ? 14 : 16}
+                        color="#7f8c8d"
+                      />
+                      <Text
+                        style={styles.metaText}
+                        numberOfLines={1}
+                      >
+                        {profile?.emp_data?.emp_id}
+                      </Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <MaterialCommunityIcons
+                        name="office-building"
+                        size={isSmallScreen ? 14 : 16}
+                        color="#7f8c8d"
+                      />
+                      <Text
+                        style={styles.metaText}
+                        numberOfLines={1}
+                      >
+                        {profile?.emp_data?.department_name}
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <>
+                  {/* User-Only View */}
+                  <Text style={styles.userName} numberOfLines={2} ellipsizeMode="tail">
+                    {profile?.user_name || 'User Name'}
                   </Text>
-                </View>
-                <View style={styles.metaItem}>
-                  <MaterialCommunityIcons
-                    name="office-building"
-                    size={isSmallScreen ? 14 : 16}
-                    color="#7f8c8d"
-                  />
-                  <Text
-                    style={styles.metaText}
-                    numberOfLines={1}
-                  >
-                    {profile?.emp_data?.department_name}
-                  </Text>
-                </View>
-              </View>
-              </>
+
+                  {profile?.user_nick_name?.trim() !== '' && (
+                    <Text style={styles.userNameSmall} numberOfLines={2}>
+                      {profile.user_nick_name}
+                    </Text>
+                  )}
+                  
+                  <View style={styles.roleContainer}>
+                    <Text style={styles.userRole} numberOfLines={1}>
+                      {profile?.user_group?.name || 'User Group'}
+                    </Text>
+                  </View>
+
+                  {/* Role Badges (if any are true) */}
+                  {(profile?.user_group?.is_admin || profile?.user_group?.is_owner || profile?.user_group?.is_manager || profile?.user_group?.is_consultant) && (
+                    <View style={styles.badgeContainer}>
+                      {profile?.user_group?.is_admin && <Text style={styles.badge}>Admin</Text>}
+                      {profile?.user_group?.is_owner && <Text style={styles.badge}>Owner</Text>}
+                      {profile?.user_group?.is_manager && <Text style={styles.badge}>Manager</Text>}
+                      {profile?.user_group?.is_consultant && <Text style={styles.badge}>Consultant</Text>}
+                    </View>
+                  )}
+                </>
               )}
             </View>
           </View>
@@ -350,7 +379,7 @@ const styles = StyleSheet.create({
     marginRight: isSmallScreen ? 40 : 50, // Add margin to prevent overlap with logout button
   },
   userName: {
-    fontSize: isSmallScreen ? 18 : 20,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: '600',
     color: '#222',
     marginBottom: 4,

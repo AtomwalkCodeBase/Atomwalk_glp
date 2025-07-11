@@ -402,7 +402,7 @@ const CaptureData = () => {
       </View>
       {loading && (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#0288d1" />
+          <ActivityIndicator size="large" color="#088f8f" />
           <Text style={styles.loaderText}>Loading data...</Text>
         </View>
       )}
