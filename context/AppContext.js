@@ -33,7 +33,7 @@ const AppProvider = ({ children }) => {
             setIsConnected(true); // Update state to reflect network restoration
         }
     };
-    
+
 
     useEffect(() => {
         const unsubscribe = NetInfo.addEventListener(state => {
@@ -130,25 +130,17 @@ const AppProvider = ({ children }) => {
         isLoggedIn();
     }, []);
 
-    useEffect(() => {
-        if(reLoad){
     const fetchProfile = async () => {
-      try {
-        const res = await getProfileInfo();
-        setProfile(res?.data);
-        console.log("data in context", res?.data)
-        AsyncStorage.setItem("EmpId",res?.data?.emp_data?.emp_id)
-
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-      } finally {
-        setPIsLoading(false);
-      }
+        try {
+            const res = await getProfileInfo();
+            setProfile(res?.data);
+            await AsyncStorage.setItem("EmpId", res?.data?.emp_data?.emp_id?.toString() || "");
+        } catch (error) {
+            console.error('Failed to fetch profile:', error);
+        } finally {
+            setPIsLoading(false);
+        }
     };
-
-      fetchProfile();
-}
-  }, [reLoad]);
 
 
     return (
@@ -164,14 +156,15 @@ const AppProvider = ({ children }) => {
             setIsLoading,
             profile,
             setReload,
-            pisLoading
+            pisLoading,
+            fetchProfile
         }}>
             {children}
             {/* Show Network Error Modal only when disconnected */}
-            <NetworkErrorModal 
-                visible={!isConnected} 
-                onRetry={onRetry} 
-                onNetworkRestore={() => setIsConnected(true)} 
+            <NetworkErrorModal
+                visible={!isConnected}
+                onRetry={onRetry}
+                onNetworkRestore={() => setIsConnected(true)}
             />
 
         </AppContext.Provider>

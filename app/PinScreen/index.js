@@ -140,11 +140,11 @@ const AuthScreen = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar backgroundColor="#a970ff" barStyle="light-content" />
+            <StatusBar backgroundColor="#5ed2ce" barStyle="light-content" />
             
             {/* Bank Logo Area */}
             <LinearGradient
-                colors={['#a970ff', '#8a5bda']}
+                colors={['#5ed2ce', '#b2ebe8']}
                 style={styles.header}
             >
                 <View style={styles.logoContainer}>
@@ -176,7 +176,7 @@ const AuthScreen = () => {
                             onPress={() => setShowPinInput(true)}
                         >
                             <View style={styles.authButtonIconContainer}>
-                                <Icon name="lock-closed-outline" size={22} color="#7722F9" />
+                                <Icon name="lock-closed-outline" size={22} color="#088f8f" />
                             </View>
                             <Text style={styles.authButtonText}>Login with PIN</Text>
                             <Icon name="chevron-forward-outline" size={20} color="#777" style={styles.authButtonArrow} />
@@ -191,7 +191,7 @@ const AuthScreen = () => {
                                 }}
                             >
                                 <View style={styles.authButtonIconContainer}>
-                                    <Icon name="finger-print-outline" size={22} color="#7722F9" />
+                                    <Icon name="finger-print-outline" size={22} color="#088f8f" />
                                 </View>
                                 <Text style={styles.authButtonText}>Login with Fingerprint</Text>
                                 <Icon name="chevron-forward-outline" size={20} color="#777" style={styles.authButtonArrow} />
@@ -251,7 +251,7 @@ const AuthScreen = () => {
 
 
                         <TouchableOpacity onPress={openPopup} style={styles.forgotContainer}>
-                            <Icon name="help-circle-outline" size={16} color="#9C5EF9" />
+                            <Icon name="help-circle-outline" size={16} color="#088f8f" />
                             <Text style={styles.forgotText}>Forgot PIN</Text>
                         </TouchableOpacity>
                         
@@ -260,7 +260,7 @@ const AuthScreen = () => {
                                 style={styles.backButton}
                                 onPress={() => setShowPinInput(false)}
                             >
-                                <Icon name="arrow-back-outline" size={16} color="#9C5EF9" style={styles.backIcon} />
+                                <Icon name="arrow-back-outline" size={16} color="#088f8f" style={styles.backIcon} />
                                 <Text style={styles.backButtonText}>Back to Login Options</Text>
                             </TouchableOpacity>
                         )}
@@ -274,7 +274,7 @@ const AuthScreen = () => {
                                 checkNetworkAndAuthenticate();
                             }}
                         >
-                            <Icon name="finger-print" size={80} color="#9C5EF9" />
+                            <Icon name="finger-print" size={80} color="#088f8f" />
                         </TouchableOpacity>
 
                         <Text style={styles.fingerprintHint}>
@@ -284,7 +284,7 @@ const AuthScreen = () => {
                             style={styles.backButton}
                             onPress={() => setShowFingerprint(false)}
                         >
-                            <Icon name="arrow-back-outline" size={16} color="#9C5EF9" style={styles.backIcon} />
+                            <Icon name="arrow-back-outline" size={16} color="#088f8f" style={styles.backIcon} />
                             <Text style={styles.backButtonText}>Use PIN instead</Text>
                         </TouchableOpacity>
                     </View>
@@ -322,7 +322,7 @@ const AuthScreen = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F5F5',
+        backgroundColor: '#f8fffe',
     },
     header: {
         paddingTop: 100,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F6F0FF',
+        backgroundColor: '#EBFBFA',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
         width: 45,
         height: 50,
         borderWidth: 1,
-        borderColor: '#AB74FD',
+        borderColor: '#088f8f',
         borderRadius: 8,
         textAlign: 'center',
         fontSize: 18,
@@ -453,8 +453,8 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     mPINInputFilled: {
-        borderColor: '#AB74FD',
-        backgroundColor: '#F4ECFF',
+        borderColor: '#088f8f',
+        backgroundColor: '#EBFBFA',
     },
     errorContainer: {
         flexDirection: 'row',
@@ -491,14 +491,14 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     forgotText: {
-        color: '#9C5EF9',
+        color: '#088f8f',
         marginLeft: 5,
         fontWeight: '500',
     },
     fingerprintIconContainer: {
         marginVertical: 30,
         padding: 20,
-        backgroundColor: '#F6F0FF',
+        backgroundColor: '#EBFBFA',
         borderRadius: 60,
     },
     fingerprintHint: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
         marginRight: 5,
     },
     backButtonText: {
-        color: '#9C5EF9',
+        color: '#088f8f',
         fontSize: 14,
         fontWeight: '500',
     },

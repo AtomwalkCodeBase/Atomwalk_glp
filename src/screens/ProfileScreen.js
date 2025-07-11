@@ -18,7 +18,7 @@ const isMediumScreen = width >= 375 && width < 414; // Most standard phones
 const isLargeScreen = width >= 414; // Plus/Pro Max sizes
 
 const ProfileScreen = () => {
-  const { profile,isLoading,logout } = useContext(AppContext);
+  const { profile, isLoading, logout, fetchProfile } = useContext(AppContext);
   const [userGroup, setUserGroup] = useState({});
   const [userPin, setUserPin] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -27,7 +27,7 @@ const ProfileScreen = () => {
   const [pendingValue, setPendingValue] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-    const appVersion = Constants.expoConfig?.version || '0.0.1';
+  const appVersion = Constants.expoConfig?.version || '0.0.1';
 
   const router = useRouter();
 
@@ -37,8 +37,8 @@ const ProfileScreen = () => {
       setUserPin(storedPin);
     };
     fetchUserPin();
-    console.log('Profile Screen', profile);
 
+    fetchProfile();
   }, []);
 
 
@@ -87,13 +87,13 @@ const ProfileScreen = () => {
       {isLoading ? (
         <Loader visible={isLoading} />
       ) : (
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
         >
           {/* Logout Button */}
-          <TouchableOpacity 
-            style={styles.qrButton} 
+          <TouchableOpacity
+            style={styles.qrButton}
             onPress={() => setIsLogoutModalVisible(true)}
           >
             <MaterialCommunityIcons name="logout" size={isSmallScreen ? 24 : 28} color="#FF0031" />
@@ -102,45 +102,47 @@ const ProfileScreen = () => {
           {/* Profile Header Section */}
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              <Image 
-                source={{ uri: profile?.emp_data?.image || profile?.image }} 
-                style={styles.profileImage} 
+              <Image
+                source={{ uri: profile?.emp_data?.image || profile?.image }}
+                style={styles.profileImage}
                 resizeMode="cover"
               />
             </View>
-            
+
             <View style={styles.profileInfo}>
-              <Text 
+              <Text
                 style={styles.userName}
                 numberOfLines={2}
                 ellipsizeMode="tail"
               >
                 {profile?.emp_data?.name || 'Employee'}
               </Text>
-              <Text 
+              <Text
                 style={styles.userNameSmall}
                 numberOfLines={2}
               >
                 {profile?.user_name}
               </Text>
-              
+
+              {profile?.emp_data && (
+                <>
               <View style={styles.roleContainer}>
-                <Text 
+                <Text
                   style={styles.userRole}
                   numberOfLines={1}
                 >
                   {userGroup?.name || 'Employee Group'}
                 </Text>
               </View>
-              
+
               <View style={styles.userMeta}>
                 <View style={styles.metaItem}>
-                  <MaterialCommunityIcons 
-                    name="identifier" 
-                    size={isSmallScreen ? 14 : 16} 
-                    color="#7f8c8d" 
+                  <MaterialCommunityIcons
+                    name="identifier"
+                    size={isSmallScreen ? 14 : 16}
+                    color="#7f8c8d"
                   />
-                  <Text 
+                  <Text
                     style={styles.metaText}
                     numberOfLines={1}
                   >
@@ -148,12 +150,12 @@ const ProfileScreen = () => {
                   </Text>
                 </View>
                 <View style={styles.metaItem}>
-                  <MaterialCommunityIcons 
-                    name="office-building" 
-                    size={isSmallScreen ? 14 : 16} 
-                    color="#7f8c8d" 
+                  <MaterialCommunityIcons
+                    name="office-building"
+                    size={isSmallScreen ? 14 : 16}
+                    color="#7f8c8d"
                   />
-                  <Text 
+                  <Text
                     style={styles.metaText}
                     numberOfLines={1}
                   >
@@ -161,89 +163,93 @@ const ProfileScreen = () => {
                   </Text>
                 </View>
               </View>
+              </>
+              )}
             </View>
           </View>
 
           {/* Personal Details Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
-            
-            {profile?.emp_data?.email_id && (<InfoRow 
-              icon="email" 
-              label="Email" 
-              value={profile?.emp_data?.email_id || 'Not available'} 
-            />)}
-            
-            {(profile?.mobile_number || profile?.emp_data?.mobile_number) && (
-            <InfoRow 
-              icon="phone" 
-              label="Mobile" 
-              value={profile?.mobile_number || profile?.emp_data?.mobile_number || 'Not available'} 
-            />
-            )}
-            
-            {profile?.emp_data?.dob && (<InfoRow 
-              icon="cake" 
-              label="Date of Birth" 
-              value={profile?.emp_data?.dob || 'Not available'} 
-            />)}
-            
-            {profile?.emp_data?.date_of_join && (
-            <InfoRow 
-              icon="calendar" 
-              label="Date of Joining" 
-              value={profile?.emp_data?.date_of_join || 'Not available'} 
-            />)}
-          </View>
+          {profile?.emp_data && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Personal Information</Text>
+
+              {profile?.emp_data?.email_id && (<InfoRow
+                icon="email"
+                label="Email"
+                value={profile?.emp_data?.email_id || 'Not available'}
+              />)}
+
+              {(profile?.mobile_number || profile?.emp_data?.mobile_number) && (
+                <InfoRow
+                  icon="phone"
+                  label="Mobile"
+                  value={profile?.mobile_number || profile?.emp_data?.mobile_number || 'Not available'}
+                />
+              )}
+
+              {profile?.emp_data?.dob && (<InfoRow
+                icon="cake"
+                label="Date of Birth"
+                value={profile?.emp_data?.dob || 'Not available'}
+              />)}
+
+              {profile?.emp_data?.date_of_join && (
+                <InfoRow
+                  icon="calendar"
+                  label="Date of Joining"
+                  value={profile?.emp_data?.date_of_join || 'Not available'}
+                />)}
+            </View>
+          )}
 
           {/* Security Section */}
           {userPin && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Security Settings</Text>
-            
-            <View style={styles.switchRow}>
-              <View style={styles.switchLabel}>
-                <MaterialCommunityIcons 
-                  name="fingerprint" 
-                  size={isSmallScreen ? 18 : 20} 
-                  color="#555" 
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Security Settings</Text>
+
+              <View style={styles.switchRow}>
+                <View style={styles.switchLabel}>
+                  <MaterialCommunityIcons
+                    name="fingerprint"
+                    size={isSmallScreen ? 18 : 20}
+                    color="#555"
+                  />
+                  <Text style={styles.switchText}>Use Fingerprint for Login</Text>
+                </View>
+                <Switch
+                  value={useFingerprint}
+                  onValueChange={handleSwitchToggle}
+                  trackColor={{ false: "#dcdcdc", true: "#2A73FC" }}
+                  thumbColor={useFingerprint ? "#fff" : "#f4f3f4"}
                 />
-                <Text style={styles.switchText}>Use Fingerprint for Login</Text>
               </View>
-              <Switch
-                value={useFingerprint}
-                onValueChange={handleSwitchToggle}
-                trackColor={{ false: "#dcdcdc", true: "#2A73FC" }}
-                thumbColor={useFingerprint ? "#fff" : "#f4f3f4"}
-              />
             </View>
-          </View>
           )}
 
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.primaryButton]}
               onPress={handlePressPassword}
             >
-              <MaterialCommunityIcons 
-                name="lock" 
-                size={isSmallScreen ? 18 : 20} 
-                color="#fff" 
+              <MaterialCommunityIcons
+                name="lock"
+                size={isSmallScreen ? 18 : 20}
+                color="#fff"
               />
               <Text style={styles.actionButtonText}>
                 {userPin ? 'Update Your Pin' : 'Set Your Pin'}
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.actionButton, styles.secondaryButton]}
               onPress={() => setIsLogoutModalVisible(true)}
             >
-              <MaterialCommunityIcons 
-                name="logout" 
-                size={isSmallScreen ? 18 : 20} 
-                color="#d9534f" 
+              <MaterialCommunityIcons
+                name="logout"
+                size={isSmallScreen ? 18 : 20}
+                color="#d9534f"
               />
               <Text style={[styles.actionButtonText, { color: '#d9534f' }]}>
                 Log Out
@@ -251,11 +257,11 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
           <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>
-            App Version: {appVersion}
-          </Text>
-        </View>
-          
+            <Text style={styles.versionText}>
+              App Version: {appVersion}
+            </Text>
+          </View>
+
           <ConfirmationModal
             visible={isLogoutModalVisible}
             message="Are you sure you want to logout?"
@@ -282,15 +288,15 @@ const ProfileScreen = () => {
 
 const InfoRow = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <MaterialCommunityIcons 
-      name={icon} 
-      size={isSmallScreen ? 18 : 20} 
-      color="#555" 
-      style={styles.infoIcon} 
+    <MaterialCommunityIcons
+      name={icon}
+      size={isSmallScreen ? 18 : 20}
+      color="#555"
+      style={styles.infoIcon}
     />
     <View style={styles.infoContent}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text 
+      <Text
         style={styles.infoValue}
         numberOfLines={1}
         ellipsizeMode="tail"
@@ -304,7 +310,7 @@ const InfoRow = ({ icon, label, value }) => (
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: '#f8fffe',
     paddingBottom: isSmallScreen ? 20 : 30,
   },
   qrButton: {
@@ -316,7 +322,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     elevation: 3,
     zIndex: 10,
-},
+  },
   profileHeader: {
     backgroundColor: '#fff',
     padding: isSmallScreen ? 15 : 20,
@@ -349,7 +355,7 @@ const styles = StyleSheet.create({
     color: '#222',
     marginBottom: 4,
     maxWidth: '90%', // Limit width to prevent overlap
-},
+  },
   userNameSmall: {
     fontSize: isSmallScreen ? 12 : 14,
     color: '#7f8c8d',

@@ -354,7 +354,7 @@ logo: {
 
 const SafeAreaContainer = styled(SafeAreaView)`
   flex: 1;
-  background-color: #a970ff;
+  background-color: #5ed2ce;
 `;
 
 const Container = styled.View`
