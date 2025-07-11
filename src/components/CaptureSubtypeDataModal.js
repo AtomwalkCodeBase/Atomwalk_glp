@@ -214,7 +214,7 @@ const CaptureSubtypeDataModal = ({
             remarks: remark || `Data ${isEditing ? 'updated' : 'captured'} via mobile app`
           };
 
-          console.log('Payload:', payload);
+          // console.log('Payload:', payload);
           await postGLPTestData(payload);
           submittedCount++;
         }

@@ -169,7 +169,7 @@ export function postGLPTestData(payload) {
   if (payload) {
     data['test_data'] = payload;
   }
-  console.log('Data to be sent:', JSON.stringify(data, null, 2));
+  // console.log('Data to be sent:', JSON.stringify(data, null, 2));
   return authAxiosPost(processGLPTestData, data)
 }
 
