@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { CircleButton } from '../components/old_components/Button';
 
 const TestCard = ({ test, onPress, formatDisplayDate }) => {
   const getStatusColor = (status) => {
@@ -48,7 +49,7 @@ const TestCard = ({ test, onPress, formatDisplayDate }) => {
         <Text style={styles.testName}>{test.name}</Text>
         <View style={[
           styles.statusBadge,
-          { 
+          {
             backgroundColor: getStatusBackgroundColor(test.completion.status),
             borderColor: getStatusColor(test.completion.status),
             borderWidth: 1
@@ -75,14 +76,23 @@ const TestCard = ({ test, onPress, formatDisplayDate }) => {
         </Text>
 
         {test.completion.totalCount > 0 ? (
-          <Text style={styles.detailText}>
-            {`${test.completion.completedCount}/${test.completion.totalCount} Completed`}
-            {test.completion.completedCount > 0 && (
-              <Text style={{ color: '#2E7D32' }}> {/* Dark Green */}
-                {` (${completionPercentage}%)`}
-              </Text>
-            )}
-          </Text>
+          <View style={styles.inlineRow}>
+            <Text style={styles.detailText}>
+              {`${test.completion.completedCount}/${test.completion.totalCount} Completed`}
+              {test.completion.completedCount > 0 && (
+                <Text style={{ color: '#2E7D32' }}>
+                  {` (${completionPercentage}%)`}
+                </Text>
+              )}
+            </Text>
+            <CircleButton 
+              style={styles.inlineButton} 
+              text="Capture Data"
+              backgroundColor='#088f8f'
+              handlePress={() => onPress(test)}
+            />
+          </View>
+
         ) : (
           <Text style={[styles.detailText, { color: '#C62828' }]}> {/* Dark Red */}
             {`No ${test.completion.animalName}s assigned to this group`}
@@ -150,6 +160,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#C62828',
     fontStyle: 'italic',
+  },
+  inlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inlineButton: {
+    marginLeft: 8,
+    width: 120,
+    borderRadius: 10,
+    height: 30
   },
 });
 
