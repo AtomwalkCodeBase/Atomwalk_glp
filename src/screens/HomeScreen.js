@@ -25,7 +25,8 @@ const CompanyContainer = styled.View`
   display: flex;
   flex-direction: row;
   width: 100%;
-  padding: 10px;
+  padding: 20px;
+  padding-top: 40px;
   background-color: #5ed2ce;
   align-items: center;
   gap: 20px;

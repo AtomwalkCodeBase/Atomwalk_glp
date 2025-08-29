@@ -1,8 +1,8 @@
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import HomeScreen from '../../src/screens/HomeScreen';
 import PinPopup from '../../src/screens/PinPopup';
 import { getProfileInfo } from '../../src/services/authServices';
+import { View } from 'react-native';
 
 const Home = () => {
   
@@ -20,10 +20,10 @@ const Home = () => {
   }, []);
 
   return (
-    <SafeAreaView>
+    <View style={{flex: 1}}>
       <HomeScreen />
       <PinPopup />
-    </SafeAreaView>
+    </View>
   );
 };
 export default Home;
